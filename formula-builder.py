@@ -11,8 +11,10 @@ num_atoms = 1
 num_agents = 1
 
 # possible types of operators/connectives:
-# | for `or`, & for 'and', ~ for `not`
-# K, M, ^ for `implies`
+# `or`,'and', `neg` for "not"
+# 'K', 'M', 'imp' for "implies"
+# 'neg (whatever)' for "not-operator/connective"
+# TODO: write enums for ^!
 
 # list formula_tree will store the nodes containing elements (atoms, agents, operators, connectives)
 # of the formula in tree form
@@ -33,25 +35,47 @@ def write_agent(agent):
 # make negation operator, given a formula
 def make_neg(formula):
     formula_tree.append(Node("neg", children=[formula]))
-    formula.parent = formula_tree[-1]
-    print(formula_tree)
+    # print(formula_tree)
 
 # make operator K or M, given existing formula and agent
-def make_epist(oper, formula, agent):
+def make_epist(oper, agent, formula):
     formula_tree.append(Node(oper, children=[agent, formula]))
-    agent.parent = formula_tree[-1]
-    formula.parent = formula_tree[-1]
-    print(formula_tree)
+    # print(formula_tree)
 
-# TODO: functions for and/or/imp, as well as not-everything
+# make negation of epistemic operator
+def make_neg_epist(oper, agent, formula):
+    formula_tree.append(Node("neg " + oper, children=[agent, formula]))
+
+# make binary connective (and, or, implies)
+def make_bin(connective, left, right):
+    formula_tree.append(Node(connective, children=[left, right]))
+    # print(formula_tree)
+
+# make negation of binary (not-stuff)
+def make_neg_bin(connective, left, right):
+    formula_tree.append(Node("neg " + connective, children=[left, right]))
+    # print(formula_tree)
+
+# renders a simplified formula tree (without path in nodes)
+def render_branch(element):
+    for pre, _, node in RenderTree(element):
+        print("%s%s" % (pre, node.name))
+
+
 # TODO: check whether children are always accessed in order of creation for implication
+# TODO: make sure multiple not-connectives are counted properly
 
 
 write_atom("p")
 make_neg(formula_tree[-1])
 write_agent("1")
-make_epist("K", formula_tree[-2], formula_tree[-1])
+make_epist("K", formula_tree[-1], formula_tree[-2])
+write_atom("a")
+write_atom("b")
+make_neg_bin("and", formula_tree[-2], formula_tree[-1])
+write_agent("2")
+make_neg_epist("M", formula_tree[-1], formula_tree[-2])
 for elem in formula_tree:
     if elem.is_root:
-        print(RenderTree(elem, style=ContStyle()))
+        render_branch(elem)
 print("end formula-builder output")
