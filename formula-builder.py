@@ -1,5 +1,6 @@
 from model import Model
 from anytree import Node, RenderTree, ContStyle
+from random import randint, choice
 
 #TODO: randomise formula tree building
 
@@ -24,8 +25,9 @@ connectives = {
 }
 
 # globals for now, will change once automatic generation is implemented
-num_atoms = 1
-num_agents = 1
+num_atoms = 2
+num_agents = 2
+max_length = 3
 
 # list formula_tree will store the nodes containing elements (atoms, agents, operators, connectives)
 # of the formula in tree form
@@ -67,6 +69,31 @@ def make_bin_con(connective, left, right):
 def make_neg_bin(connective, left, right):
     formula_tree.append(Node("NEG_" + connective, children=[left, right]))
     # print(formula_tree)
+
+# choose random operator/connective to build a new tree node with
+# first, we get all op/cons with a randomly chosen priority
+# then, we take a random op/con from that list
+def random_op_choice():
+    op_choice = []
+    pr_tier = randint(1,5)
+    for op, priority in connectives.items():
+        if priority == pr_tier:
+            op_choice.append(op)
+    return choice(op_choice)
+
+# construct a new formula node with randomly chosen op/con
+def build_rnd_subformula():
+    chosen = random_op_choice
+    if not formula_tree or (randint(0,9) < 3):
+        write_atom(choice(["a", "b"]))          # TODO: replace with reference to model later
+    # if the chosen op/conn is (double) negation
+    if connectives[chosen] == 1:
+        # modify and call write_neg
+    elif connectives[chosen] == 3 or connectives[chosen] == 4:
+        # modify and call make_epist
+    else:
+        # otherwise, it's a binary connective
+
 
 # renders a simplified formula tree (without path in nodes)
 def render_branch(element):
