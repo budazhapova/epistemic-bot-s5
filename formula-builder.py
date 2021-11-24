@@ -25,7 +25,7 @@ connectives = {
 }
 
 # globals for now, will change once automatic generation is implemented
-num_atoms = 2
+num_atoms = ["a", "b"]
 num_agents = 2
 max_length = 10      # maximum number of operators in a formula for now
 
@@ -77,10 +77,6 @@ def make_epist(oper, agent, formula):
 def make_bin_con(connective, left, right):
     formula_tree.append(Node(connective, children=[left, right]))
 
-# TODO: are separate functions for negation necessary?
-# make negation of binary (not-stuff)
-def make_neg_bin(connective, left, right):
-    formula_tree.append(Node("NEG_" + connective, children=[left, right]))
 
 # find all top (root) nodes and choose a random one
 def find_roots():
@@ -107,7 +103,7 @@ def build_rnd_subformula():
     chosen = rnd_op_choice()
     print("oper/con choise: ", chosen)
     if not formula_tree or (randint(0,9) < 2):
-        write_atom(choice(["a", "b"]))          # TODO: replace with reference to model later
+        write_atom(choice(num_atoms))          # TODO: replace with reference to model later
     all_roots = find_roots()
     subformula = choice(all_roots)
     # if the chosen op/conn is (double) negation
@@ -121,7 +117,7 @@ def build_rnd_subformula():
         # otherwise, it's a binary connective
         # write another atom if there's only one root available
         if len(all_roots) < 2:
-            new_atom = write_atom(choice(["a", "b"]))       # TODO: don't forget to replace atoms
+            new_atom = write_atom(choice(num_atoms))       # TODO: don't forget to replace atoms
             all_roots.append(new_atom)
         two_branches = sample(all_roots, k=2)
         make_bin_con(chosen, two_branches[0], two_branches[1])
@@ -135,6 +131,7 @@ def render_branch(element):
 # TODO: check whether children are always accessed in order of creation for implication
 # TODO: make sure multiple not-connectives are counted properly
 # TODO: ensure it eventually comes to a single root node in the end!
+# TODO: change update counter so that it checks "not-something" oper/conns as 2 operations?
 
 
 
