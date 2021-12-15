@@ -27,24 +27,22 @@ num_atoms = ["a", "b"]
 num_agents = 2
 max_length = 5      # maximum number of operators in a formula for now
 
-# list formula_tree will store the nodes containing elements (atoms, agents, operators, connectives)
-# of the formula in tree form
-formula_tree = []
 
 
+# TODO: should atoms/agents have priority tier? check with resolving negations in tableau
 # makes a node with a propositional atom
-def write_atom(atom):
-    formula_tree.append(Node(atom))
+def write_atom(formula_tree, atom):
+    formula_tree.append(Node(atom, type="atom", state=None, priority=0))
     return formula_tree[-1]
 
 # makes a node with an agent
 # TODO: connect atom and agent with model? do we actually need it for the generator?
-def write_agent(agent):
-    formula_tree.append(Node(agent))
+def write_agent(formula_tree, agent):
+    formula_tree.append(Node(agent, type="agent", state=None, priority=0))
     return formula_tree[-1]
 
 # make negation operator, given a formula
-def make_neg(oper, formula):
+def make_neg(formula_tree, oper, formula):
     # if formula starts with negation, make it double
     if formula.name == "NEG":
         formula.name = "DOUBLE_NEG"
@@ -56,24 +54,23 @@ def make_neg(oper, formula):
     # if formula already contains negation, remove and put double negation in new node
     if "NEG_" in formula.name:
         formula.name = formula.name.replace("NEG_", "")
-        formula_tree.append(Node("DOUBLE_NEG", children=[formula]))
+        formula_tree.append(Node("DOUBLE_NEG", children=[formula], type="operator", state=None, priority=1))
         return
-    # TODO: now that I've excluded double negation, hope I won't need it
     # if we get triple negation for some reason, rearrange to have double first
     # if formula.name == "DOUBLE_NEG":
     #     formula.name = formula.name.replace("DOUBLE_", "")
     #     formula_tree.append(Node("DOUBLE_NEG", children=[formula]))
     #     return
     # otherwise, assume we're negating an atom
-    formula_tree.append(Node(oper, children=[formula]))
+    formula_tree.append(Node(oper, children=[formula], type="operator", state=None, priority=1))
 
 # make operator K or M (or their negations), given existing formula and agent
-def make_epist(oper, agent, formula):
-    formula_tree.append(Node(oper, children=[agent, formula]))
+def make_epist(formula_tree, oper, agent, formula):
+    formula_tree.append(Node(oper, children=[agent, formula], type="operator", state=None, priority=connectives[oper]))
 
 # make binary connective (and, or, implies, and negations of them)
-def make_bin_con(connective, left, right):
-    formula_tree.append(Node(connective, children=[left, right]))
+def make_bin_con(formula_tree, connective, left, right):
+    formula_tree.append(Node(connective, children=[left, right], type="operator", state=None, priority=connectives[connective]))
 
 
 # find all top (root) nodes and return a list of them
@@ -104,44 +101,46 @@ def rnd_op_choice(pr_tier=choice([2,5])):
     return selected
 
 # construct a new formula node with randomly chosen op/con
-def build_rnd_subformula(chosen, countdown):
+def build_rnd_subformula(formula_tree, chosen, countdown):
     print("oper/conn choice: ", chosen)
     # if formula is empty or 50/50 chance to create new sub-branch
     # AND there's not too few operations left
     # TODO: is this probability alright?
     if (not formula_tree or (randint(0,9) < 5)) and countdown >= (max_length/3):
-        write_atom(choice(num_atoms))          # TODO: replace with reference to model later
+        write_atom(formula_tree, choice(num_atoms))          # TODO: replace with reference to model later
     all_roots = find_roots(formula_tree)
     subformula = choice(all_roots)
     # if the chosen op/conn is negation
     if connectives[chosen] == 1:
-        make_neg(chosen, subformula)
+        make_neg(formula_tree, chosen, subformula)
     # if epistemic operator is chosen
     elif connectives[chosen] == 3 or connectives[chosen] == 4:
-        new_agent = write_agent(randint(1, num_agents))     # TODO: replace with reference to model later?
-        make_epist(chosen, new_agent, subformula)
+        new_agent = write_agent(formula_tree, randint(1, num_agents))     # TODO: replace with reference to model later?
+        make_epist(formula_tree, chosen, new_agent, subformula)
     else:
         # otherwise, it's a binary connective
         # write another atom if there's only one root available
         if len(all_roots) < 2:
-            new_atom = write_atom(choice(num_atoms))       # TODO: don't forget to replace atoms
+            new_atom = write_atom(formula_tree, choice(num_atoms))       # TODO: don't forget to replace atoms
             all_roots.append(new_atom)
         two_branches = sample(all_roots, k=2)
-        make_bin_con(chosen, two_branches[0], two_branches[1])
+        make_bin_con(formula_tree, chosen, two_branches[0], two_branches[1])
 
 # renders a simplified formula tree (without path in nodes)
 def render_branch(element):
     for pre, _, node in RenderTree(element):
-        print("%s%s" % (pre, node.name))
+        print("%s%s/%s" % (pre, node.name, node.state))
 
 
 # TODO: check whether children are always accessed in order of creation for implication
 # TODO: make sure multiple not-connectives are counted properly
-# TODO: ensure it eventually comes to a single root node in the end!
 # TODO: change update counter so that it checks "not-something" oper/conns as 2 operations?
 
 # generates a formula of (approx.) 'countdown' number of operators
 def generate_formula(countdown):
+    # list formula_tree will store the nodes containing elements (atoms, agents, operators, connectives)
+    # of the formula in tree form
+    formula_tree = []
     # count down the max number of operators (is funky about negation!)
     while countdown > 0:
         print(countdown, " operations left")
@@ -155,13 +154,13 @@ def generate_formula(countdown):
         # otherwise, choose from all available
         else:
             selected = rnd_op_choice(randint(1,5))
-        build_rnd_subformula(selected, countdown)
+        build_rnd_subformula(formula_tree, selected, countdown)
         countdown -= 1
     all_branches = find_roots(formula_tree)
     # print formula tree for checking
     for elem in all_branches:
         render_branch(elem)
-    print("end formula-builder output")
+    print("end formula-builder output\n")
     return formula_tree
 
 

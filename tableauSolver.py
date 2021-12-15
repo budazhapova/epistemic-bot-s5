@@ -20,20 +20,20 @@ def solve_neg(oper, formula_tree):
     # set atom to false
 
 
+# sort roots by priority
+def priority_sort(el):
+    return el.priority
 
 
 
 # general loop (for now):
 # make up a formula
-formula_tree = generate_formula(4)          # number subject to change
+formula_tree = generate_formula(5)          # number subject to change
+# for x in range(10):
+#     formula_tree.extend(generate_formula(5))
 # loop until tableau complete or a branch closes
 # while True:
 resolvables = find_roots(formula_tree)
-# resolvables_sorted = resolvables.sort(key=lambda x:connectives[x.name])
+resolvables.sort(key=lambda x: x.priority)
 for n in resolvables:
     render_branch(n)
-    # sort available oper/connectives in priority order of resolving
-    # priority_order = []
-    # for x in range(1,6):
-    #     for r in resolvables:
-# TODO: wipe out; rework Node as a subclass to include priority tier of operators and state as properties
