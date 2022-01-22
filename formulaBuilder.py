@@ -135,6 +135,7 @@ def render_branch(element):
 # TODO: check whether children are always accessed in order of creation for implication
 # TODO: make sure multiple not-connectives are counted properly
 # TODO: change update counter so that it checks "not-something" oper/conns as 2 operations?
+# TODO: implicit/distributed knowledge operator I?
 
 # generates a formula of (approx.) 'countdown' number of operators
 def generate_formula(countdown):
