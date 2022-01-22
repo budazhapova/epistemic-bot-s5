@@ -46,16 +46,16 @@ def make_neg(formula_tree, oper, formula):
     # if formula starts with negation, make it double
     if formula.name == "NEG":
         formula.name = "DOUBLE_NEG"
-        return
+        return 0
     # if formula starts with any other operator:
     if formula.name in ["K", "M", "AND", "OR", "IMP", "BI_IMP"]:
         formula.name = "NEG_" + formula.name
-        return
+        return 0
     # if formula already contains negation, remove and put double negation in new node
     if "NEG_" in formula.name:
         formula.name = formula.name.replace("NEG_", "")
         formula_tree.append(Node("DOUBLE_NEG", children=[formula], type="operator", state=None, priority=1))
-        return
+        return formula_tree[-1]
     # if we get triple negation for some reason, rearrange to have double first
     # if formula.name == "DOUBLE_NEG":
     #     formula.name = formula.name.replace("DOUBLE_", "")
@@ -63,6 +63,7 @@ def make_neg(formula_tree, oper, formula):
     #     return
     # otherwise, assume we're negating an atom
     formula_tree.append(Node(oper, children=[formula], type="operator", state=None, priority=1))
+    return formula_tree[-1]
 
 # make operator K or M (or their negations), given existing formula and agent
 def make_epist(formula_tree, oper, agent, formula):
