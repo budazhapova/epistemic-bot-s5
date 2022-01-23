@@ -1,3 +1,4 @@
+from binhex import openrsrc
 from model import Model
 from formulaBuilder import *
 from anytree import Node, RenderTree
@@ -119,13 +120,34 @@ def priority_sort(el):
     return el.priority
 
 # general action choice loop
+def solver_loop(formula_tree, world):
+    resolvables = find_roots(formula_tree)
+    resolvables.sort(key=lambda x: x.priority)
+    print("\ncurrent available roots in order:")
+    for n in resolvables:
+        render_branch(n)
+    oper_name = resolvables[0].name
+    # if highest priority root is a lone atomic predicate
+    if resolvables[0].type == "atom":
+        solve_atom(resolvables[0], formula_tree, world)
+    # otherwise, it must be an operator
+    elif oper_name == "DOUBLE_NEG":
+        solve_double_neg(resolvables[0], formula_tree)
+    elif oper_name == "NEG":
+        solve_neg(resolvables[0], formula_tree, world)
+    elif oper_name == "AND":
+        solve_and(resolvables[0], formula_tree)
+    elif oper_name == "NEG_OR":
+        solve_neg_or(resolvables[0], formula_tree)
+    elif oper_name == "NEG_IMP":
+        solve_neg_imp(resolvables[0], formula_tree)
+    # sidebar used here
 
 
 # TODO: operation for erasing branch with return -99
-# TODO: add model as argument where appropriate
 # TODO: duplicate for branching formulas
-# TODO: sidebar for tier-3 operators
-# TODO: work in a trigger for discovering new relations and checking sidebar
+# TODO: sidebar for tier-3 operators -- work in usage
+# TODO: trigger for checking old K and not-M formulas upon discovering new relations
 
 # general loop (for now):
 # make up a formula
@@ -137,6 +159,9 @@ def priority_sort(el):
 
 # temp code for testing
 formula_tree = []
+# sidebar is where we put formulas that might be expanded again later
+# if a new accessibility relation is discovered
+sidebar = []
 write_atom(formula_tree, "a")
 
 # initial pass (start of tableau)
@@ -161,10 +186,3 @@ world.print_states()
 # solve_atom(formula_tree[-1], formula_tree, world)
 # print("current model state:")
 # world.print_states()
-
-
-# for later passes
-# resolvables = find_roots(formula_tree)
-# resolvables.sort(key=lambda x: x.priority)
-# for n in resolvables:
-#     render_branch(n)

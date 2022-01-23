@@ -35,15 +35,29 @@ class Model:
     def initialize_agent(self):
         self.agents.append(list(None))
         
-    # add accessibility relation to an numbered agent's list
-    # `state2' gets added to the list `state1` is on, otherwise both get added
+    # checks whether this state-agent combo has any accessibility relations
+    def check_relations(self, state, agent):
+        # if no accessbility relations recorded yet
+        if not self.agents[agent]:
+            return None
+        # else look in that agent's sets and return known relations
+        for set in self.agents[agent]:
+            if state in set:
+                return set
+    
+    # adds new accessibility relation to the set
     def add_relation(self, state1, state2, agent):
-        for relation in self.agents[agent]:
-            if state1 in relation:
-                relation.append(state2)
-                break
-        else:
-            self.agents[agent].append([state1, state2])
+        # if no relations recorded for this agent, add a new set into list
+        if not self.agents[agent]:
+            self.agents[agent] = []
+            new_set = {state1, state2}
+            self.agents[agent].append(new_set)
+            return
+        # otherwise, search within existing sets
+        for set in self.agents[agent]:
+            if state1 or state2 in set:
+                set.update({state1, state2})
+
 
     def print_atoms(self):
         for atom in self.atoms:
@@ -55,10 +69,10 @@ class Model:
 
 
 
-model = Model(2, 3, 2)
+# model = Model(2, 3, 2)
 # for x in range(5):
 #    model.add_atom()
 # model.initialize_state()
-model.print_atoms()
-model.print_states()
-print("end model file output")
+# model.print_atoms()
+# model.print_states()
+# print("end model file output")
