@@ -23,7 +23,7 @@ connectives = {
 }
 
 # globals for now, will change once automatic generation is implemented
-num_atoms = ["a", "b"]
+num_atoms = ["a", "b", "c"]
 num_agents = 2
 max_length = 5      # maximum number of operators in a formula for now
 
@@ -83,8 +83,8 @@ def find_roots(formula_tree):
     return all_roots
 
 
-# choose a random operator/connective from a given priority tier
-# binary connectives only is the default value (i.e., if called with no argument).
+# choose a random operator/connective from a given priority tier.
+# binary connectives only is the default mode (i.e., if called with no argument).
 # compiles a list of all op/cons with a given chosen priority
 # and returns a random op/con from that list
 def rnd_op_choice(pr_tier=choice([2,5])):
@@ -98,17 +98,17 @@ def rnd_op_choice(pr_tier=choice([2,5])):
         if priority == pr_tier:
             op_choice.append(op)
     selected = choice(op_choice)
-    print("oper/conn selected: ", selected)
+    # print("oper/conn selected: ", selected)
     return selected
 
 # construct a new formula node with randomly chosen op/con
-def build_rnd_subformula(formula_tree, chosen, countdown):
+def build_rnd_subformula(formula_tree, chosen):
     print("oper/conn choice: ", chosen)
     # if formula is empty or 50/50 chance to create new sub-branch
     # AND there's not too few operations left
-    # TODO: is this probability alright?
-    if (not formula_tree or (randint(0,9) < 5)) and countdown >= (max_length/3):
-        write_atom(formula_tree, choice(num_atoms))          # TODO: replace with reference to model later
+    # TODO: do I even need random atom generation?
+    # if (not formula_tree or (randint(0,9) < 3)):
+    #     write_atom(formula_tree, choice(num_atoms))          # TODO: replace with reference to model later
     all_roots = find_roots(formula_tree)
     subformula = choice(all_roots)
     # if the chosen op/conn is negation
@@ -133,17 +133,21 @@ def render_branch(element):
         print("%s%s/%s" % (pre, node.name, node.state))
 
 
-# TODO: check whether children are always accessed in order of creation for implication
-# TODO: make sure multiple not-connectives are counted properly
-# TODO: change update counter so that it checks "not-something" oper/conns as 2 operations?
 # TODO: implicit/distributed knowledge operator I?
 
-# generates a formula of (approx.) 'countdown' number of operators
-def generate_formula(countdown):
+# generates a formula of 'countdown' amount of operators.
+# arg 'permitted' denotes the maximum priority of allowed operators
+# TODO: remove the limit on op choice after testing!
+def generate_formula(countdown, permitted=5):
     # list formula_tree will store the nodes containing elements (atoms, agents, operators, connectives)
     # of the formula in tree form
     formula_tree = []
-    # count down the max number of operators (is funky about negation!)
+    # start by generating random atoms
+    initial_atoms = countdown / 2
+    while initial_atoms > 0:
+        write_atom(formula_tree, choice(num_atoms))
+        initial_atoms -= 1
+    # count down the max number of operators
     while countdown > 0:
         print(countdown, " operations left")
         current_roots = find_roots(formula_tree)
@@ -152,13 +156,36 @@ def generate_formula(countdown):
         # than there are op/conns to generate,
         # restrict random choice to only binary conns
         if len(current_roots) >= countdown:
-            selected = rnd_op_choice()
+            # WORKAROUND for in-progress testing for tableau solver.
+            # when limiting generated difficulty, use only tier-2 ops if tier-5 is not allowed yet
+            if permitted < 5:
+                selected = rnd_op_choice(2)
+            else:
+                selected = rnd_op_choice()      # default argument: 2 or 5
         # otherwise, choose from all available
         else:
-            selected = rnd_op_choice(randint(1,5))
-        build_rnd_subformula(formula_tree, selected, countdown)
-        countdown -= 1
+            selected = rnd_op_choice(randint(1,permitted))
+        # ensure we don't end up with one extra operator in the last round.
+        # if selected is 'double neg' or 'not-smth', try again
+        while countdown == 1 and "_" in selected:
+            if selected == "BI_IMP": break
+            # if branches need uniting
+            if len(current_roots) > 1:
+                # TODO: remove after testing
+                if permitted < 5:
+                    selected = "AND"
+                else:
+                    selected = choice(["AND", "OR", "IMP", "BI_IMP"])
+            selected = rnd_op_choice(randint(1,permitted))
+        build_rnd_subformula(formula_tree, selected)
+        # if chosen operator actually contains 2 op/conns, count them properly
+        if "_" in selected and selected != "BI_IMP":
+            countdown -= 2
+        else:
+            countdown -= 1
     all_branches = find_roots(formula_tree)
+    if len(all_branches) > 1:
+        print("SPLIT TREE!")
     # print formula tree for checking
     for elem in all_branches:
         render_branch(elem)
@@ -166,4 +193,4 @@ def generate_formula(countdown):
     return formula_tree
 
 
-# generate_formula(max_length)
+# generate_formula(6)

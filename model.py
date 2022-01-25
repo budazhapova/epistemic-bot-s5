@@ -14,9 +14,9 @@ class Model:
         self.atoms.append(chr(ord('a') + len(self.atoms)))
 
     # add a new state to the list and populate it with existing atoms (no truth values yet)
-    # def initialize_state(self):
-    #     for state in self.states:
-    #         self.states[state] = dict.fromkeys(self.atoms, None)
+    def add_state(self):
+        new_state = dict.fromkeys(self.atoms, None)
+        self.states.append(new_state)
     
     # check atom's truth value in a given state
     def access_atom(self, atom, valuation, state_id):

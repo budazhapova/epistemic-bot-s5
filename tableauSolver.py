@@ -37,7 +37,7 @@ def solve_atom(atom, formula_tree, world):
         return -99
     else:
         formula_tree.remove(atom)
-        print(formula_tree)
+        # print(formula_tree)
 
 # PRIORITY TIER 1
 # resolve double negation
@@ -70,7 +70,7 @@ def solve_neg(oper, formula_tree, world):
     else:
         formula_tree.remove(atom)
         formula_tree.remove(oper)
-        print(formula_tree)
+        # print(formula_tree)
 
 # PRIORITY TIER 2
 # resolve AND operators
@@ -123,25 +123,38 @@ def priority_sort(el):
 def solver_loop(formula_tree, world):
     resolvables = find_roots(formula_tree)
     resolvables.sort(key=lambda x: x.priority)
-    print("\ncurrent available roots in order:")
+    print("\ncurrent available roots in priority order:")
     for n in resolvables:
         render_branch(n)
     oper_name = resolvables[0].name
+    result = 0
+    print("resolving ", oper_name)
     # if highest priority root is a lone atomic predicate
     if resolvables[0].type == "atom":
-        solve_atom(resolvables[0], formula_tree, world)
+        result = solve_atom(resolvables[0], formula_tree, world)
     # otherwise, it must be an operator
     elif oper_name == "DOUBLE_NEG":
         solve_double_neg(resolvables[0], formula_tree)
     elif oper_name == "NEG":
-        solve_neg(resolvables[0], formula_tree, world)
+        result = solve_neg(resolvables[0], formula_tree, world)
     elif oper_name == "AND":
         solve_and(resolvables[0], formula_tree)
     elif oper_name == "NEG_OR":
         solve_neg_or(resolvables[0], formula_tree)
     elif oper_name == "NEG_IMP":
         solve_neg_imp(resolvables[0], formula_tree)
+    else:
+        sys.exit("UNIMPLEMENTED OPERATOR")
     # sidebar used here
+    
+    # TODO: add reverting to other branch functionality
+    if result == -99:
+        print("CONTRADICTION FOUND")
+        formula_tree.clear()
+        del world
+        return
+    print("current model state:")
+    world.print_states()
 
 
 # TODO: operation for erasing branch with return -99
@@ -162,27 +175,19 @@ formula_tree = []
 # sidebar is where we put formulas that might be expanded again later
 # if a new accessibility relation is discovered
 sidebar = []
-write_atom(formula_tree, "a")
 
-# initial pass (start of tableau)
-build_rnd_subformula(formula_tree, "NEG", 1)
-write_atom(formula_tree, "b")
+# generate formula of given length and max operator priority
+formula_tree = generate_formula(5, 2)
+world = Model(3, 2)                  # TODO: automate
+# find root nodes (should only be one!)
 roots = find_roots(formula_tree)
-make_bin_con(formula_tree, "NEG_OR", roots[0], roots[1])
-roots = find_roots(formula_tree)
+if len(roots) > 1:
+    sys.exit("ERROR more than one top connective")
+# TODO: don't forget to negate the top connective!
 # set state 0 for the top connective
 for root in roots:
     root.state = 0
-world = Model(2, 2, 1)                  # TODO: automate
-print("initial tree:")
-render_branch(root)
-solve_neg_or(root, formula_tree)
-# solve_neg(roots[0], formula_tree, world)
-roots = find_roots(formula_tree)
-for root in roots:
-    render_branch(root)
-print("\ncurrent model state:")
-world.print_states()
-# solve_atom(formula_tree[-1], formula_tree, world)
-# print("current model state:")
-# world.print_states()
+
+while formula_tree:
+    solver_loop(formula_tree, world)
+print("\nend tableau solver output")
