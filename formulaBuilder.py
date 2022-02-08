@@ -192,5 +192,4 @@ def generate_formula(countdown, permitted=5):
     print("end formula-builder output\n")
     return formula_tree
 
-
 # generate_formula(6)

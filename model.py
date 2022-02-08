@@ -1,3 +1,5 @@
+# class Model defines possible model as explored by tableau solver
+
 class Model:
     # number of atoms (letters) and agents (digits) is passed when instance is created
     def __init__(self, num_atoms, num_agents, num_states = 1):
@@ -6,7 +8,7 @@ class Model:
         # initialize every state with list of atoms and their truth valuations
         for state in self.states:
             self.states[state] = dict.fromkeys(self.atoms, None)
-        self.agents = list(range(num_agents))
+        self.agents = list(range(1, num_agents+1))
 
     # TODO: remove if proves unneeded
     # start with letter 'a' and add new atoms alphabetically as needed
@@ -20,7 +22,7 @@ class Model:
     
     # check atom's truth value in a given state
     def access_atom(self, atom, valuation, state_id):
-        print("state ", state_id, ": ", self.states[state_id])
+        # print("state ", state_id, ": ", self.states[state_id])
         # if no value set, record truth valuation
         if self.states[state_id].get(atom) == None:
             self.states[state_id].update({atom: valuation})
@@ -39,7 +41,9 @@ class Model:
     def check_relations(self, state, agent):
         # if no accessbility relations recorded yet
         if not self.agents[agent]:
-            return None
+            new_set = {state}
+            self.agents[agent].append(new_set)
+            return new_set
         # else look in that agent's sets and return known relations
         for set in self.agents[agent]:
             if state in set:
@@ -54,9 +58,10 @@ class Model:
             self.agents[agent].append(new_set)
             return
         # otherwise, search within existing sets
-        for set in self.agents[agent]:
-            if state1 or state2 in set:
-                set.update({state1, state2})
+        if isinstance(self.agents[agent], list):
+            for set in self.agents[agent]:
+                if state1 or state2 in set:
+                    set.update({state1, state2})
 
 
     def print_atoms(self):
@@ -65,7 +70,7 @@ class Model:
 
     def print_states(self):
         for state in self.states:
-            print(state)
+            print(f"state {self.states.index(state)}: {state}")
 
 
 

@@ -16,15 +16,46 @@ def detach_parent(oper_node):
     for child in oper_node.children:
         child.parent = None
 
-# insert new node between parent and child
-def insert_node(new_node, parent_node, child_node):
-    new_node.parent = parent_node
-    child_node.parent = new_node
+# insert new negation node between parent and child
+def insert_neg_node(parent_node, child_node, formula_tree):
+    neg_node = make_neg(formula_tree, "NEG", child_node)
+    if neg_node != 0:
+        neg_node.parent = parent_node
+        child_node.parent = neg_node
+
+# remove a node from the middle of branch and knit the edges
+def remove_branch_node(parent_node, middle_node, formula_tree):
+    state_id = parent_node.state
+    successor = middle_node.children[0]
+    # pass state to child node
+    confer_state(successor, state_id)
+    # change branch structure
+    parent_node.children = None
+    successor.parent = parent_node
+    # erase the middle node
+    formula_tree.remove(middle_node)
 
 # pass parent's state identifier to children (we stay in the same state)
 def inherit_state(oper):
     for child in oper.children:
         child.state = oper.state
+
+# TODO: remove if redundant
+# set children's state to new_state
+def confer_state(oper, new_state):
+    for child in oper.children:
+        child.state = new_state
+
+# remove epistemic operator nodes from tree
+def remove_epist_op(epist_op, new_state, formula_tree):
+    for child in epist_op.children:
+        if child.type == "agent":
+            formula_tree.remove(child)
+        else:
+            child.state = new_state
+            child.parent = None
+    formula_tree.remove(epist_op)
+
 
 # PRIORITY TIER 0
 # resolve an atom at the end of a branch
@@ -40,6 +71,21 @@ def solve_atom(atom, formula_tree, world):
         # print(formula_tree)
 
 # PRIORITY TIER 1
+# TODO: test this implementation or just straigh-up removing next
+# resolve multiple negations
+def solve_multi_neg(node, neg_count):
+    # if current node has more than 1 child, stop
+    if len(node.children) > 1:
+        return node
+    # recursively count how many negations in a row there are
+    for child in node.children:
+        if child.name == "DOUBLE_NEG":
+            neg_count += 2
+            solve_multi_neg(child, neg_count)
+        elif "NEG" in child.name:
+            neg_count += 1
+            solve_multi_neg(child, neg_count)
+
 # resolve double negation
 def solve_double_neg(oper, formula_tree):
     # if formula branches after double negation node, abort
@@ -53,12 +99,13 @@ def solve_double_neg(oper, formula_tree):
 
 # solve negation (only in front of atoms)
 def solve_neg(oper, formula_tree, world):
-    # if more than 1 child node or more than 1 step away from terminal node
-    if len(oper.children) > 1 or oper.height > 1:
-        print("separate negation node before not-terminal/non-atom! abort")
-        print("child node: ", oper.descendants)
-        sys.exit("NEG ERROR")
-        # negation in front of non-atom found; should never happen
+    # if more than 1 step away from terminal node, there are multiple negations
+    if oper.height > 1:
+        # if next node is double negation, remove it
+        for child in oper.children:
+            if child.name == "DOUBLE_NEG":
+                remove_branch_node(oper, child, formula_tree)
+        # in case there is a negation pileup
     inherit_state(oper)
     # check atom's truth valuation in the model
     atom = oper.children[0]
@@ -92,9 +139,7 @@ def solve_neg_or(oper, formula_tree):
         sys.exit("NEG-OR ERROR")
     # apply negation to both child-nodes
     for child in oper.children:
-        neg_node = make_neg(formula_tree, "NEG", child)
-        if neg_node != 0:
-            insert_node(neg_node, oper, child)
+        insert_neg_node(oper, child, formula_tree)
     inherit_state(oper)
     detach_parent(oper)
     formula_tree.remove(oper)
@@ -107,12 +152,39 @@ def solve_neg_imp(oper, formula_tree):
         sys.exit("NEG-IMP ERROR")
     # 'a does not imply b' means 'a and not-b'
     right_child = oper.children[1]
-    new_neg = make_neg(formula_tree, "NEG", right_child)
-    if new_neg != 0:
-        insert_node(new_neg, oper, right_child)
+    insert_neg_node(oper, right_child, formula_tree)
     inherit_state(oper)
     detach_parent(oper)
     formula_tree.remove(oper)
+
+# PRIORITY TIER 3
+def solve_K(oper, agent, formula_tree, world):
+    # retrieve this state's accessibility relations for this agent
+    home_state = oper.state
+    # can access at least itself
+    relations = world.check_relations(home_state, agent)
+    if not relations:
+        sys.exit("K ERROR. Accessibility relations empty")
+
+# PRIORITY TIER 4
+# resolve M (agent considers possible) operator
+# or NOT-K (agent does not know) operator
+def solve_M_or_neg_K(oper, formula_tree, world):
+    home_state_id = oper.state
+    agent = oper.children[0].name
+    # create new state in model
+    world.add_state()
+    new_state_id = len(world.states) - 1
+    # add new accessibility relation to the model
+    world.add_relation(home_state_id, new_state_id, agent)
+    print(f"agent {agent} relation sets: {world.check_relations(home_state_id, agent)}")
+    # if resolving NEG-K, insert negation
+    if oper.name == "NEG_K":
+        right_child = oper.children[1]
+        insert_neg_node(oper, right_child, formula_tree)
+    # change child's state, remove M operator and agent
+    remove_epist_op(oper, new_state_id, formula_tree)
+
 
 
 # sort roots by priority
@@ -143,6 +215,9 @@ def solver_loop(formula_tree, world):
         solve_neg_or(resolvables[0], formula_tree)
     elif oper_name == "NEG_IMP":
         solve_neg_imp(resolvables[0], formula_tree)
+    # TODO: insert tier 3 operators later
+    elif oper_name == "M" or oper_name == "NEG_K":
+        solve_M_or_neg_K(resolvables[0], formula_tree, world)
     else:
         sys.exit("UNIMPLEMENTED OPERATOR")
     # sidebar used here
@@ -177,7 +252,7 @@ formula_tree = []
 sidebar = []
 
 # generate formula of given length and max operator priority
-formula_tree = generate_formula(5, 2)
+formula_tree = generate_formula(5, 4)
 world = Model(3, 2)                  # TODO: automate
 # find root nodes (should only be one!)
 roots = find_roots(formula_tree)
