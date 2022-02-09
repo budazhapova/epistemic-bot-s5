@@ -8,7 +8,11 @@ class Model:
         # initialize every state with list of atoms and their truth valuations
         for state in self.states:
             self.states[state] = dict.fromkeys(self.atoms, None)
-        self.agents = list(range(1, num_agents+1))
+        # agents from 0 to num_agents (upper bound of range is exclusive)
+        # agent 0 is empty padding to ensure index matches agent id
+        self.agents = list(range(num_agents+1))
+        self.formula_tree = []
+        self.sidebar = []
 
     # TODO: remove if proves unneeded
     # start with letter 'a' and add new atoms alphabetically as needed
@@ -40,25 +44,24 @@ class Model:
     # checks whether this state-agent combo has any accessibility relations
     def check_relations(self, state, agent):
         # if no accessbility relations recorded yet
-        if not self.agents[agent]:
-            new_set = {state}
-            self.agents[agent].append(new_set)
-            return new_set
+        if not isinstance(self.agents[agent], list):
+            return None
         # else look in that agent's sets and return known relations
-        for set in self.agents[agent]:
-            if state in set:
-                return set
+        else:
+            for set in self.agents[agent]:
+                if state in set:
+                    return set
     
     # adds new accessibility relation to the set
     def add_relation(self, state1, state2, agent):
         # if no relations recorded for this agent, add a new set into list
-        if not self.agents[agent]:
+        if not isinstance(self.agents[agent], list):
             self.agents[agent] = []
-            new_set = {state1, state2}
-            self.agents[agent].append(new_set)
+            self.agents[agent].append({state1, state2})
+            print(f"agent {agent} relation recorded: {self.agents[agent]}")
             return
         # otherwise, search within existing sets
-        if isinstance(self.agents[agent], list):
+        else:
             for set in self.agents[agent]:
                 if state1 or state2 in set:
                     set.update({state1, state2})

@@ -1,10 +1,10 @@
-from binhex import openrsrc
 from model import Model
 from formulaBuilder import *
 from anytree import Node, RenderTree
 import sys
 
 # when using a branching rule, first evaluate a copy subtree for left branch
+# TODO: reevaluate!
 def copy_subtree(subtree, world):
     duplicate_formula = subtree
     duplicate_world = world
@@ -30,7 +30,7 @@ def remove_branch_node(parent_node, middle_node, formula_tree):
     # pass state to child node
     confer_state(successor, state_id)
     # change branch structure
-    parent_node.children = None
+    middle_node.parent = None
     successor.parent = parent_node
     # erase the middle node
     formula_tree.remove(middle_node)
@@ -56,10 +56,15 @@ def remove_epist_op(epist_op, new_state, formula_tree):
             child.parent = None
     formula_tree.remove(epist_op)
 
+# triggers when new relation has been discovered
+def trigger_sidebar(agent, old_state, new_state, world):
+    if not world.check_relations(old_state, agent):
+        sys.exit("TRIGGER ERROR. no relations found")
+    # TODO: trigger sidebar
 
 # PRIORITY TIER 0
 # resolve an atom at the end of a branch
-def solve_atom(atom, formula_tree, world):
+def solve_atom(atom, world):
     if atom.height != 0:
         print("single atom at non-terminal node!\n function solve_atom")
         sys.exit("ATOM ERROR")
@@ -67,7 +72,7 @@ def solve_atom(atom, formula_tree, world):
     if result == False:
         return -99
     else:
-        formula_tree.remove(atom)
+        world.formula_tree.remove(atom)
         # print(formula_tree)
 
 # PRIORITY TIER 1
@@ -98,13 +103,13 @@ def solve_double_neg(oper, formula_tree):
     formula_tree.remove(oper)
 
 # solve negation (only in front of atoms)
-def solve_neg(oper, formula_tree, world):
+def solve_neg(oper, world):
     # if more than 1 step away from terminal node, there are multiple negations
     if oper.height > 1:
         # if next node is double negation, remove it
         for child in oper.children:
             if child.name == "DOUBLE_NEG":
-                remove_branch_node(oper, child, formula_tree)
+                remove_branch_node(oper, child, world.formula_tree)
         # in case there is a negation pileup
     inherit_state(oper)
     # check atom's truth valuation in the model
@@ -115,8 +120,8 @@ def solve_neg(oper, formula_tree, world):
         return -99
     # otherwise, wipe resolved nodes and continue
     else:
-        formula_tree.remove(atom)
-        formula_tree.remove(oper)
+        world.formula_tree.remove(atom)
+        world.formula_tree.remove(oper)
         # print(formula_tree)
 
 # PRIORITY TIER 2
@@ -158,18 +163,19 @@ def solve_neg_imp(oper, formula_tree):
     formula_tree.remove(oper)
 
 # PRIORITY TIER 3
-def solve_K(oper, agent, formula_tree, world):
+def solve_initial_K(oper, agent, world):
     # retrieve this state's accessibility relations for this agent
     home_state = oper.state
     # can access at least itself
     relations = world.check_relations(home_state, agent)
     if not relations:
         sys.exit("K ERROR. Accessibility relations empty")
+    print(f"retrieved relations of state {home_state}: {relations}")
 
 # PRIORITY TIER 4
 # resolve M (agent considers possible) operator
 # or NOT-K (agent does not know) operator
-def solve_M_or_neg_K(oper, formula_tree, world):
+def solve_M_or_neg_K(oper, world):
     home_state_id = oper.state
     agent = oper.children[0].name
     # create new state in model
@@ -177,13 +183,14 @@ def solve_M_or_neg_K(oper, formula_tree, world):
     new_state_id = len(world.states) - 1
     # add new accessibility relation to the model
     world.add_relation(home_state_id, new_state_id, agent)
-    print(f"agent {agent} relation sets: {world.check_relations(home_state_id, agent)}")
+    current_set = world.check_relations(home_state_id, agent)
+    print(f"agent {agent} relation sets: {current_set}")
     # if resolving NEG-K, insert negation
     if oper.name == "NEG_K":
         right_child = oper.children[1]
-        insert_neg_node(oper, right_child, formula_tree)
+        insert_neg_node(oper, right_child, world.formula_tree)
     # change child's state, remove M operator and agent
-    remove_epist_op(oper, new_state_id, formula_tree)
+    remove_epist_op(oper, new_state_id, world.formula_tree)
 
 
 
@@ -192,8 +199,8 @@ def priority_sort(el):
     return el.priority
 
 # general action choice loop
-def solver_loop(formula_tree, world):
-    resolvables = find_roots(formula_tree)
+def solver_loop(world):
+    resolvables = find_roots(world.formula_tree)
     resolvables.sort(key=lambda x: x.priority)
     print("\ncurrent available roots in priority order:")
     for n in resolvables:
@@ -203,21 +210,21 @@ def solver_loop(formula_tree, world):
     print("resolving ", oper_name)
     # if highest priority root is a lone atomic predicate
     if resolvables[0].type == "atom":
-        result = solve_atom(resolvables[0], formula_tree, world)
+        result = solve_atom(resolvables[0], world)
     # otherwise, it must be an operator
     elif oper_name == "DOUBLE_NEG":
-        solve_double_neg(resolvables[0], formula_tree)
+        solve_double_neg(resolvables[0], world.formula_tree)
     elif oper_name == "NEG":
-        result = solve_neg(resolvables[0], formula_tree, world)
+        result = solve_neg(resolvables[0], world)
     elif oper_name == "AND":
-        solve_and(resolvables[0], formula_tree)
+        solve_and(resolvables[0], world.formula_tree)
     elif oper_name == "NEG_OR":
-        solve_neg_or(resolvables[0], formula_tree)
+        solve_neg_or(resolvables[0], world.formula_tree)
     elif oper_name == "NEG_IMP":
-        solve_neg_imp(resolvables[0], formula_tree)
+        solve_neg_imp(resolvables[0], world.formula_tree)
     # TODO: insert tier 3 operators later
     elif oper_name == "M" or oper_name == "NEG_K":
-        solve_M_or_neg_K(resolvables[0], formula_tree, world)
+        solve_M_or_neg_K(resolvables[0], world)
     else:
         sys.exit("UNIMPLEMENTED OPERATOR")
     # sidebar used here
@@ -225,7 +232,7 @@ def solver_loop(formula_tree, world):
     # TODO: add reverting to other branch functionality
     if result == -99:
         print("CONTRADICTION FOUND")
-        formula_tree.clear()
+        world.formula_tree.clear()
         del world
         return
     print("current model state:")
@@ -245,17 +252,15 @@ def solver_loop(formula_tree, world):
 # loop until tableau complete or a branch closes
 # while True:
 
-# temp code for testing
-formula_tree = []
+# list formula_tree stores the formula in tree-node form
 # sidebar is where we put formulas that might be expanded again later
 # if a new accessibility relation is discovered
-sidebar = []
+world = Model(3, 2)                     # TODO: automate
 
 # generate formula of given length and max operator priority
-formula_tree = generate_formula(5, 4)
-world = Model(3, 2)                  # TODO: automate
+generate_formula(world.formula_tree, 5, 4)
 # find root nodes (should only be one!)
-roots = find_roots(formula_tree)
+roots = find_roots(world.formula_tree)
 if len(roots) > 1:
     sys.exit("ERROR more than one top connective")
 # TODO: don't forget to negate the top connective!
@@ -263,6 +268,6 @@ if len(roots) > 1:
 for root in roots:
     root.state = 0
 
-while formula_tree:
-    solver_loop(formula_tree, world)
-print("\nend tableau solver output")
+while world.formula_tree:
+    solver_loop(world)
+print("\nBRANCH COMPLETE \nend tableau solver output")

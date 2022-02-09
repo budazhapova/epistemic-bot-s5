@@ -25,7 +25,6 @@ connectives = {
 # globals for now, will change once automatic generation is implemented
 num_atoms = ["a", "b", "c"]
 num_agents = 2
-max_length = 5      # maximum number of operators in a formula for now
 
 
 
@@ -50,10 +49,14 @@ def make_neg(formula_tree, oper, formula):
     # if formula starts with any other operator:
     if formula.name in ["K", "M", "AND", "OR", "IMP", "BI_IMP"]:
         formula.name = "NEG_" + formula.name
+        # reassign priority tier
+        formula.priority = connectives[formula.name]
         return 0
     # if formula already contains negation, remove and put double negation in new node
     if "NEG_" in formula.name:
         formula.name = formula.name.replace("NEG_", "")
+        # reassign priority
+        formula.priority = connectives[formula.name]
         formula_tree.append(Node("DOUBLE_NEG", children=[formula], type="operator", state=None, priority=1))
         return formula_tree[-1]
     # if we get triple negation for some reason, rearrange to have double first
@@ -138,10 +141,9 @@ def render_branch(element):
 # generates a formula of 'countdown' amount of operators.
 # arg 'permitted' denotes the maximum priority of allowed operators
 # TODO: remove the limit on op choice after testing!
-def generate_formula(countdown, permitted=5):
+def generate_formula(formula_tree, countdown, permitted=5):
     # list formula_tree will store the nodes containing elements (atoms, agents, operators, connectives)
     # of the formula in tree form
-    formula_tree = []
     # start by generating random atoms
     initial_atoms = countdown / 2
     while initial_atoms > 0:
@@ -176,7 +178,9 @@ def generate_formula(countdown, permitted=5):
                     selected = "AND"
                 else:
                     selected = choice(["AND", "OR", "IMP", "BI_IMP"])
-            selected = rnd_op_choice(randint(1,permitted))
+            # if no unifying necessary
+            else:
+                selected = rnd_op_choice(randint(1,permitted))
         build_rnd_subformula(formula_tree, selected)
         # if chosen operator actually contains 2 op/conns, count them properly
         if "_" in selected and selected != "BI_IMP":
@@ -190,6 +194,6 @@ def generate_formula(countdown, permitted=5):
     for elem in all_branches:
         render_branch(elem)
     print("end formula-builder output\n")
-    return formula_tree
+    # return formula_tree
 
 # generate_formula(6)
