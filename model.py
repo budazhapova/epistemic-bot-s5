@@ -1,4 +1,5 @@
 # class Model defines possible model as explored by tableau solver
+from copy import deepcopy
 
 class Model:
     # number of atoms (letters) and agents (digits) is passed when instance is created
@@ -65,6 +66,14 @@ class Model:
             for set in self.agents[agent]:
                 if state1 or state2 in set:
                     set.update({state1, state2})
+    
+    # records a copy of given subformula to the model's sidebar for future use
+    def copy_subformula(self, root, destination):
+        root_index = len(destination)
+        # destination.append(root)
+        # destination.extend(root.descendants)
+        destination.append(deepcopy(root))
+        return root_index
 
 
     def print_atoms(self):

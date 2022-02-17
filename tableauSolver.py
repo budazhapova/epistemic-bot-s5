@@ -1,15 +1,8 @@
+from hashlib import new
 from model import Model
 from formulaBuilder import *
 from anytree import Node, RenderTree
 import sys
-
-# when using a branching rule, first evaluate a copy subtree for left branch
-# TODO: reevaluate!
-def copy_subtree(subtree, world):
-    duplicate_formula = subtree
-    duplicate_world = world
-    # TODO: work into actual code
-    return duplicate_formula, duplicate_world
 
 # sever parent-child association between nodes
 def detach_parent(oper_node):
@@ -40,27 +33,32 @@ def inherit_state(oper):
     for child in oper.children:
         child.state = oper.state
 
-# TODO: remove if redundant
 # set children's state to new_state
 def confer_state(oper, new_state):
     for child in oper.children:
         child.state = new_state
 
+# FIXME: should I put the state-assigning back here?
 # remove epistemic operator nodes from tree
-def remove_epist_op(epist_op, new_state, formula_tree):
+def remove_epist_op(epist_op, formula_tree):
     for child in epist_op.children:
         if child.type == "agent":
             formula_tree.remove(child)
         else:
-            child.state = new_state
             child.parent = None
     formula_tree.remove(epist_op)
 
-# triggers when new relation has been discovered
+# checks if there are any previous box-like operators for the old state
+# and if so, triggers resolution of them for the new state
 def trigger_sidebar(agent, old_state, new_state, world):
     if not world.check_relations(old_state, agent):
         sys.exit("TRIGGER ERROR. no relations found")
-    # TODO: trigger sidebar
+    # first, find available roots in the sidebar
+    epist_nodes = find_roots(world.sidebar)
+    for n in epist_nodes:
+        # if there's a box-like operator with the same home state and same agent, solve it again
+        if n.state == old_state and n.children[0].name == agent:
+            repeat_solve_K_or_neg_M(n, new_state, world)
 
 # PRIORITY TIER 0
 # resolve an atom at the end of a branch
@@ -163,16 +161,73 @@ def solve_neg_imp(oper, formula_tree):
     formula_tree.remove(oper)
 
 # PRIORITY TIER 3
-def solve_initial_K(oper, agent, world):
-    # retrieve this state's accessibility relations for this agent
+# deals with box-like operators (K or not-M)
+def resolve_epist_box(oper, new_state_id, world, negation=False, first_call=True):
+    # 'first_call' means this is the first time we're resolving this operator
+    # and the original is located in the main formula_tree, not the sidebar
+    if first_call:
+        source = world.formula_tree
+    else:
+        source = world.sidebar
+    # if not-M is being resolved, push negation on top of formula
+    if negation:
+        child_node = oper.children[1]
+        insert_neg_node(oper, child_node, source)
+    # assign state to the formula under epistemic operator
+    confer_state(oper, new_state_id)
+    # if first time resolving, remove epist oper (otherwise keep in the sidebar)
+    if first_call:
+        remove_epist_op(oper, source)
+
+# K stands for (agent knows subformula),
+# not-M stands for (agent doesn't consider subformula possible)
+def solve_initial_K_neg_M(oper, world):
+    if oper.name == "NEG_M":
+        negation = True
+    else:
+        negation = False
     home_state = oper.state
+    agent = oper.children[0].name
+    # retrieve this state's accessibility relations for this agent
     # can access at least itself
     relations = world.check_relations(home_state, agent)
+    # if no relations found, register reflexive accessibility
     if not relations:
-        sys.exit("K ERROR. Accessibility relations empty")
+        world.add_relation(home_state, home_state, agent)
+        relations = {home_state}
     print(f"retrieved relations of state {home_state}: {relations}")
+    # first, put a copy of current subtree into sidebar
+    world.copy_subformula(oper, world.sidebar)
+    # then, resolve the original
+    # if only reflexive relation exists, no extra steps needed
+    if len(relations) == 1:
+        resolve_epist_box(oper, home_state, world, negation)
+        return
+    # otherwise there's more than 1 accessible state
+    for state_id in relations:
+        # do reflexive access last
+        if state_id == home_state:
+            pass
+        top_index = world.copy_subformula(oper, world.formula_tree)
+        top_node = world.formula_tree[top_index]
+        resolve_epist_box(top_node, state_id, world, negation)
+    # finally, state accesses itself
+    resolve_epist_box(oper, home_state, world, negation)
 
-# PRIORITY TIER 4
+# TODO: can these two be folded into one??
+# works with previously resolved box-like epist operators from the sidebar
+def repeat_solve_K_or_neg_M(oper, new_state_id, world):
+    negation = False
+    if oper.name == "NEG_M":
+        negation = True
+    agent = oper.children[0].name
+    print(f"sidebar new relation: state {oper.state} to {new_state_id} for agent {agent}")
+    # copy subformula from sidebar to formula tree
+    top_index = world.copy_subformula(oper, world.formula_tree)
+    top_node = world.formula_tree[top_index]
+    resolve_epist_box(top_node, new_state_id, world, negation, first_call=False)
+
+# PRIORITY TIER 4 -- diamondlike operators
 # resolve M (agent considers possible) operator
 # or NOT-K (agent does not know) operator
 def solve_M_or_neg_K(oper, world):
@@ -189,8 +244,11 @@ def solve_M_or_neg_K(oper, world):
     if oper.name == "NEG_K":
         right_child = oper.children[1]
         insert_neg_node(oper, right_child, world.formula_tree)
-    # change child's state, remove M operator and agent
-    remove_epist_op(oper, new_state_id, world.formula_tree)
+    # change child's state, remove epist operator and agent
+    confer_state(oper, new_state_id)
+    remove_epist_op(oper, world.formula_tree)
+    # trigger new state exploration for previously explored box operators
+    trigger_sidebar(agent, home_state_id, new_state_id, world)
 
 
 
@@ -205,6 +263,11 @@ def solver_loop(world):
     print("\ncurrent available roots in priority order:")
     for n in resolvables:
         render_branch(n)
+    if world.sidebar:
+        sidebar_roots = find_roots(world.sidebar)
+        print("sidebar:")
+        for s in sidebar_roots:
+            render_branch(s)
     oper_name = resolvables[0].name
     result = 0
     print("resolving ", oper_name)
@@ -212,17 +275,18 @@ def solver_loop(world):
     if resolvables[0].type == "atom":
         result = solve_atom(resolvables[0], world)
     # otherwise, it must be an operator
-    elif oper_name == "DOUBLE_NEG":
-        solve_double_neg(resolvables[0], world.formula_tree)
     elif oper_name == "NEG":
         result = solve_neg(resolvables[0], world)
+    elif oper_name == "DOUBLE_NEG":
+        solve_double_neg(resolvables[0], world.formula_tree)
     elif oper_name == "AND":
         solve_and(resolvables[0], world.formula_tree)
     elif oper_name == "NEG_OR":
         solve_neg_or(resolvables[0], world.formula_tree)
     elif oper_name == "NEG_IMP":
         solve_neg_imp(resolvables[0], world.formula_tree)
-    # TODO: insert tier 3 operators later
+    elif oper_name == "K" or oper_name == "NEG_M":
+        solve_initial_K_neg_M(resolvables[0], world)
     elif oper_name == "M" or oper_name == "NEG_K":
         solve_M_or_neg_K(resolvables[0], world)
     else:
@@ -258,7 +322,7 @@ def solver_loop(world):
 world = Model(3, 2)                     # TODO: automate
 
 # generate formula of given length and max operator priority
-generate_formula(world.formula_tree, 5, 4)
+generate_formula(world.formula_tree, 7, 4)
 # find root nodes (should only be one!)
 roots = find_roots(world.formula_tree)
 if len(roots) > 1:

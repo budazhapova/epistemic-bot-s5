@@ -140,7 +140,7 @@ def render_branch(element):
 
 # generates a formula of 'countdown' amount of operators.
 # arg 'permitted' denotes the maximum priority of allowed operators
-# TODO: remove the limit on op choice after testing!
+# FIXME: remove the limit on op choice after testing!
 def generate_formula(formula_tree, countdown, permitted=5):
     # list formula_tree will store the nodes containing elements (atoms, agents, operators, connectives)
     # of the formula in tree form
