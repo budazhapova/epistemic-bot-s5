@@ -7,7 +7,7 @@ from random import randint, choice, sample
 # all possible operators and connective in descending priority order of resolving
 connectives = {
     "DOUBLE_NEG": 1,
-    "NEG": 1,             # TODO: might be resolved another way?
+    "NEG": 1,
     "AND": 2,
     "NEG_OR": 2,
     "NEG_IMP": 2,
@@ -67,6 +67,13 @@ def make_neg(formula_tree, oper, formula):
     # otherwise, assume we're negating an atom
     formula_tree.append(Node(oper, children=[formula], type="operator", state=None, priority=1))
     return formula_tree[-1]
+
+# insert new negation node between parent and child
+def insert_neg_node(parent_node, child_node, formula_tree):
+    neg_node = make_neg(formula_tree, "NEG", child_node)
+    if neg_node != 0:
+        neg_node.parent = parent_node
+        child_node.parent = neg_node
 
 # make operator K or M (or their negations), given existing formula and agent
 def make_epist(formula_tree, oper, agent, formula):

@@ -67,6 +67,45 @@ class Model:
                 if state1 or state2 in set:
                     set.update({state1, state2})
     
+    # sever parent-child association between nodes
+    def detach_parent(self, oper_node):
+        for child in oper_node.children:
+            child.parent = None
+
+    
+
+    # remove a node from the middle of branch and knit the edges
+    def remove_branch_node(self, parent_node, middle_node, formula_tree):
+        state_id = parent_node.state
+        successor = middle_node.children[0]
+        # pass state to child node
+        self.confer_state(successor, state_id)
+        # change branch structure
+        middle_node.parent = None
+        successor.parent = parent_node
+        # erase the middle node
+        formula_tree.remove(middle_node)
+
+    # pass parent's state identifier to children (we stay in the same state)
+    def inherit_state(self, oper):
+        for child in oper.children:
+            child.state = oper.state
+
+    # set children's state to new_state
+    def confer_state(self, oper, new_state):
+        for child in oper.children:
+            child.state = new_state
+
+    # FIXME: should I put the state-assigning back here?
+    # remove epistemic operator nodes from tree
+    def remove_epist_op(self, epist_op, formula_tree):
+        for child in epist_op.children:
+            if child.type == "agent":
+                formula_tree.remove(child)
+            else:
+                child.parent = None
+        formula_tree.remove(epist_op)
+
     # records a copy of given subformula to the model's sidebar for future use
     def copy_subformula(self, root, destination):
         root_index = len(destination)
@@ -74,6 +113,22 @@ class Model:
         # destination.extend(root.descendants)
         destination.append(deepcopy(root))
         return root_index
+    
+    # removes an entire branch/subformula from the formula_tree
+    def wipe_branch(self, current_node):
+        # if end of branch is reached, start deleting
+        if current_node.is_leaf:
+            current_node.parent = None
+            del current_node
+            return
+        # otherwise, recursively traverse down to the leaves
+        for child in current_node.children:
+            self.wipe_branch(child)
+    
+    # returns an exact copy of the current model
+    def copy_model(self):
+        new_model = deepcopy(self)
+        return new_model
 
 
     def print_atoms(self):
