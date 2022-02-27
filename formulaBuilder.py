@@ -41,7 +41,8 @@ def write_agent(formula_tree, agent):
     return formula_tree[-1]
 
 # make negation operator, given a formula
-def make_neg(formula_tree, oper, formula):
+def make_neg(formula_tree, formula):
+    state_id = formula.state
     # if formula starts with negation, make it double
     if formula.name == "NEG":
         formula.name = "DOUBLE_NEG"
@@ -55,9 +56,9 @@ def make_neg(formula_tree, oper, formula):
     # if formula already contains negation, remove and put double negation in new node
     if "NEG_" in formula.name:
         formula.name = formula.name.replace("NEG_", "")
-        # reassign priority
+        # reassign priority and state (if node has state identifier)
         formula.priority = connectives[formula.name]
-        formula_tree.append(Node("DOUBLE_NEG", children=[formula], type="operator", state=None, priority=1))
+        formula_tree.append(Node("DOUBLE_NEG", children=[formula], type="operator", state=state_id, priority=1))
         return formula_tree[-1]
     # if we get triple negation for some reason, rearrange to have double first
     # if formula.name == "DOUBLE_NEG":
@@ -65,12 +66,12 @@ def make_neg(formula_tree, oper, formula):
     #     formula_tree.append(Node("DOUBLE_NEG", children=[formula]))
     #     return
     # otherwise, assume we're negating an atom
-    formula_tree.append(Node(oper, children=[formula], type="operator", state=None, priority=1))
+    formula_tree.append(Node("NEG", children=[formula], type="operator", state=state_id, priority=1))
     return formula_tree[-1]
 
 # insert new negation node between parent and child
 def insert_neg_node(parent_node, child_node, formula_tree):
-    neg_node = make_neg(formula_tree, "NEG", child_node)
+    neg_node = make_neg(formula_tree, child_node)
     if neg_node != 0:
         neg_node.parent = parent_node
         child_node.parent = neg_node
@@ -123,7 +124,7 @@ def build_rnd_subformula(formula_tree, chosen):
     subformula = choice(all_roots)
     # if the chosen op/conn is negation
     if connectives[chosen] == 1:
-        make_neg(formula_tree, chosen, subformula)
+        make_neg(formula_tree, subformula)
     # if epistemic operator is chosen
     elif connectives[chosen] == 3 or connectives[chosen] == 4:
         new_agent = write_agent(formula_tree, randint(1, num_agents))     # TODO: replace with reference to model later?

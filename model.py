@@ -1,5 +1,6 @@
 # class Model defines possible model as explored by tableau solver
 from copy import deepcopy
+from anytree import PreOrderIter
 
 class Model:
     # number of atoms (letters) and agents (digits) is passed when instance is created
@@ -72,8 +73,6 @@ class Model:
         for child in oper_node.children:
             child.parent = None
 
-    
-
     # remove a node from the middle of branch and knit the edges
     def remove_branch_node(self, parent_node, middle_node, formula_tree):
         state_id = parent_node.state
@@ -106,24 +105,34 @@ class Model:
                 child.parent = None
         formula_tree.remove(epist_op)
 
-    # records a copy of given subformula to the model's sidebar for future use
+    # records a copy of given subformula to the model's sidebar for future use, returns root index
     def copy_subformula(self, root, destination):
         root_index = len(destination)
         # destination.append(root)
         # destination.extend(root.descendants)
+        # FIXME: see if append or extend works better
         destination.append(deepcopy(root))
         return root_index
     
+    # copies a branch of formula node by node and return the resulting list
+    def replicate_branch(self, root):
+        new_branch = []
+        for node in PreOrderIter(root):
+            new_branch.append(deepcopy(node))
+        return new_branch
+
     # removes an entire branch/subformula from the formula_tree
-    def wipe_branch(self, current_node):
-        # if end of branch is reached, start deleting
-        if current_node.is_leaf:
-            current_node.parent = None
-            del current_node
-            return
-        # otherwise, recursively traverse down to the leaves
-        for child in current_node.children:
-            self.wipe_branch(child)
+    def wipe_branch(self, tree, current_node):
+        # if node is not terminal
+        if not current_node.is_leaf:
+            # recursively traverse down to the leaves
+            for child in current_node.children:
+                self.wipe_branch(tree, child)
+        # wipe current nodes from leaves up
+        # current_node.parent = None
+        tree.remove(current_node)
+        return
+
     
     # returns an exact copy of the current model
     def copy_model(self):

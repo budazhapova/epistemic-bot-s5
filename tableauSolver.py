@@ -1,9 +1,9 @@
 from model import Model
 from formulaBuilder import *
 from anytree import Node, RenderTree
+from copy import deepcopy
 import sys
 
-# TODO: move node operations into model class!
 
 # checks if there are any previous box-like operators for the old state
 # and if so, triggers resolution of them for the new state
@@ -214,9 +214,60 @@ def solve_M_or_neg_K(oper, world):
 def solve_branching(oper, world):
     # top operator determines how we structure the following
     rule = oper.name
-    # TODO: copy child branches, remove from main, then reinsert them
+    # pass down the state id to children
+    world.inherit_state(oper)
+    # copy child branches, then remove them from main
+    left_branch = []
+    right_branch = []
+    # world.copy_subformula(oper.children[0], left_branch)
+    # world.copy_subformula(oper.children[1], right_branch)
+    # TODO: which branch copying method to use??
+    left_branch = world.replicate_branch(oper.children[0])
+    right_branch = world.replicate_branch(oper.children[1])
+    world.wipe_branch(world.formula_tree, oper)
     # create copy the current model
     world_prime = world.copy_model()
+        # outcome depends on rule used:
+    # not-AND => not-A, not-B
+    if rule == "NEG_AND":
+        make_neg(left_branch, left_branch[0])
+        make_neg(right_branch, right_branch[0])
+    # OR => no negation necessary
+    elif rule == "OR":
+        pass
+    # IMP => not-A, right
+    elif rule == "IMP":
+        make_neg(left_branch, left_branch[0])
+    # BI_IMP => A + B, not-A + not-B
+    # FIXME: check if replicate_branch works properly??
+    elif rule == "BI_IMP":
+        temp_copy = world.replicate_branch(left_branch)
+        # temp_copy = deepcopy(left_branch)
+        left_branch.extend(deepcopy(right_branch))
+        # right branch contains negations of A as well as B
+        make_neg(right_branch, right_branch[0])
+        make_neg(temp_copy, temp_copy[0])
+        right_branch.extend(temp_copy)
+    # NEG_BI_IMP => A + not-B, not-A + B
+    elif rule == "NEG_BI_IMP":
+        temp_right = world.replicate_branch(right_branch)
+        temp_left = world.replicate_branch(left_branch)
+        # temp_right = deepcopy(right_branch)
+        # temp_left = deepcopy(left_branch)
+        make_neg(temp_left, temp_left[0])
+        make_neg(temp_right, temp_right[0])
+        left_branch.extend(temp_right)
+        right_branch.extend(temp_left)
+    # reinsert left branch into world-copy, right branch into original model object
+    world_prime.formula_tree.extend(left_branch)
+    print("model copy contains after attaching:")
+    roots_prime = find_roots(world_prime.formula_tree)
+    for r in roots_prime:
+        render_branch(r)
+    world.formula_tree.extend(right_branch)
+    # try to solve left branch in world_prime first
+    while world_prime.formula_tree:
+        solver_loop(world_prime)
     # FIXME: check whether wrapper list for models is necessary?
 
 
@@ -257,10 +308,10 @@ def solver_loop(world):
         solve_initial_K_neg_M(resolvables[0], world)
     elif oper_name == "M" or oper_name == "NEG_K":
         solve_M_or_neg_K(resolvables[0], world)
-    # TODO: tier 5 operators here
+    elif resolvables[0].priority == 5:
+        solve_branching(resolvables[0], world)
     else:
         sys.exit("UNIMPLEMENTED OPERATOR")
-    # sidebar used here
     
     # TODO: add reverting to other branch functionality
     if result == -99:
@@ -270,6 +321,11 @@ def solver_loop(world):
         return
     print("current model state:")
     world.print_states()
+    
+    # if branch is open and complete (no operators left, no contradiction)
+    if not world.formula_tree:
+        print("OPEN AND COMPLETE BRANCH => NOT A TAUTOLOGY")
+        sys.exit()
 
 
 # TODO: operation for erasing branch with return -99
@@ -300,10 +356,11 @@ roots = find_roots(main_world.formula_tree)
 if len(roots) > 1:
     sys.exit("ERROR more than one top connective")
 # negate first connective for the tableau
-make_neg(main_world.formula_tree, "NEG", roots[0])
+make_neg(main_world.formula_tree, roots[0])
 # set state 0 for the top connective
-for root in roots:
-    root.state = 0
+# for root in roots:
+#     root.state = 0
+main_world.formula_tree[-1].state = 0
 
 # TODO: consider an outer loop that accounts for branching?
 while main_world.formula_tree:
