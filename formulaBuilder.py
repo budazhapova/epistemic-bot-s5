@@ -11,10 +11,10 @@ connectives = {
     "AND": 2,
     "NEG_OR": 2,
     "NEG_IMP": 2,
-    "K": 3,
-    "NEG_M": 3,
-    "NEG_K": 4,
-    "M": 4,
+    # "K": 3,
+    # "NEG_M": 3,
+    # "NEG_K": 4,
+    # "M": 4,
     "OR": 5,
     "NEG_AND": 5,
     "IMP": 5,
@@ -60,11 +60,6 @@ def make_neg(formula_tree, formula):
         formula.priority = connectives[formula.name]
         formula_tree.append(Node("DOUBLE_NEG", children=[formula], type="operator", state=state_id, priority=1))
         return formula_tree[-1]
-    # if we get triple negation for some reason, rearrange to have double first
-    # if formula.name == "DOUBLE_NEG":
-    #     formula.name = formula.name.replace("DOUBLE_", "")
-    #     formula_tree.append(Node("DOUBLE_NEG", children=[formula]))
-    #     return
     # otherwise, assume we're negating an atom
     formula_tree.append(Node("NEG", children=[formula], type="operator", state=state_id, priority=1))
     return formula_tree[-1]
@@ -149,7 +144,7 @@ def render_branch(element):
 # generates a formula of 'countdown' amount of operators.
 # arg 'permitted' denotes the maximum priority of allowed operators
 # FIXME: remove the limit on op choice after testing!
-def generate_formula(formula_tree, countdown, permitted=5):
+def generate_formula(formula_tree, countdown):
     # list formula_tree will store the nodes containing elements (atoms, agents, operators, connectives)
     # of the formula in tree form
     # start by generating random atoms
@@ -166,29 +161,23 @@ def generate_formula(formula_tree, countdown, permitted=5):
         # than there are op/conns to generate,
         # restrict random choice to only binary conns
         if len(current_roots) >= countdown:
-            # WORKAROUND for in-progress testing for tableau solver.
-            # when limiting generated difficulty, use only tier-2 ops if tier-5 is not allowed yet
-            if permitted < 5:
-                selected = rnd_op_choice(2)
-            else:
-                selected = rnd_op_choice()      # default argument: 2 or 5
+            selected = rnd_op_choice()      # default argument: 2 or 5
         # otherwise, choose from all available
         else:
-            selected = rnd_op_choice(randint(1,permitted))
+            # FIXME: remove the limited operator selection
+            selected = rnd_op_choice(choice([1,2,5]))
+            # selected = rnd_op_choice(randint(1,5))
         # ensure we don't end up with one extra operator in the last round.
         # if selected is 'double neg' or 'not-smth', try again
         while countdown == 1 and "_" in selected:
             if selected == "BI_IMP": break
             # if branches need uniting
             if len(current_roots) > 1:
-                # TODO: remove after testing
-                if permitted < 5:
-                    selected = "AND"
-                else:
-                    selected = choice(["AND", "OR", "IMP", "BI_IMP"])
+                # only non-negated binary connectives permitted
+                selected = choice(["AND", "OR", "IMP", "BI_IMP"])
             # if no unifying necessary
             else:
-                selected = rnd_op_choice(randint(1,permitted))
+                selected = rnd_op_choice(randint(1,5))
         build_rnd_subformula(formula_tree, selected)
         # if chosen operator actually contains 2 op/conns, count them properly
         if "_" in selected and selected != "BI_IMP":

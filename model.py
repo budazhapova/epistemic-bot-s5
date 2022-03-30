@@ -1,6 +1,6 @@
 # class Model defines possible model as explored by tableau solver
 from copy import deepcopy
-from anytree import PreOrderIter
+from anytree import Node, PreOrderIter
 
 class Model:
     # number of atoms (letters) and agents (digits) is passed when instance is created
@@ -65,13 +65,16 @@ class Model:
         # otherwise, search within existing sets
         else:
             for set in self.agents[agent]:
-                if state1 or state2 in set:
+                if state1 in set or state2 in set:
                     set.update({state1, state2})
+            return
     
     # sever parent-child association between nodes
     def detach_parent(self, oper_node):
         for child in oper_node.children:
             child.parent = None
+            if child.parent:
+                print(f"FAILURE DETACHING FROM for node {child.name}")
 
     # remove a node from the middle of branch and knit the edges
     def remove_branch_node(self, parent_node, middle_node, formula_tree):
@@ -119,6 +122,13 @@ class Model:
         new_branch = []
         for node in PreOrderIter(root):
             new_branch.append(deepcopy(node))
+            # if root-node has parents, detach it
+            if node == root and not root.is_root:
+                new_branch[-1].parent = None
+        if len(new_branch) < 1:
+            print("copying branch failed!")
+        else:
+            print(f"branch copied with {len(new_branch)} nodes")
         return new_branch
 
     # removes an entire branch/subformula from the formula_tree
@@ -126,17 +136,36 @@ class Model:
         # if node is not terminal
         if not current_node.is_leaf:
             # recursively traverse down to the leaves
+            print(f"traversing node {current_node.name}")
             for child in current_node.children:
                 self.wipe_branch(tree, child)
         # wipe current nodes from leaves up
         # current_node.parent = None
+        print(f"wiping node {current_node.name}")
         tree.remove(current_node)
         return
 
     
     # returns an exact copy of the current model
-    def copy_model(self):
+    def copy_model(self, roots_main, roots_sidebar):
+        new_model = Model(len(self.atoms), len(self.agents), len(self.states))
         new_model = deepcopy(self)
+        if len(roots_main) < 1:
+            print("NO ROOTS PASSED DURING COPYING of pre-attach model")
+        for n in roots_main:
+            new_branch = self.replicate_branch(n)
+            new_model.formula_tree.extend(new_branch)
+            print(f"new model copy has {len(new_model.formula_tree)} nodes")
+        # new_model.formula_tree = deepcopy(self.formula_tree)
+        for s in roots_sidebar:
+            branch_copy = self.replicate_branch(s)
+            new_model.sidebar.extend(branch_copy)
+        # new_model.sidebar = deepcopy(self.sidebar)
+        new_model.states = deepcopy(self.states)
+        if not new_model:
+            print("model object copying failed!")
+        else:
+            print(f"copied model consists of: {len(new_model.formula_tree)} tree nodes and {len(new_model.states)} states")
         return new_model
 
 
