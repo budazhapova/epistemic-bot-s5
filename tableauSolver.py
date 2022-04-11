@@ -52,7 +52,8 @@ def solve_multi_neg(node, world):
             # attach NEG node to DOUBLE NEG's child and assign appropriate state id
             # (should only ever be one grandchild, but node.children is always a list)
             for grandchild in grandchildren:
-                make_neg(world.formula_tree, grandchild)
+                world.node_total += 1
+                make_neg(world.formula_tree, grandchild, world.node_total)
 
 
 # resolve double negation
@@ -79,10 +80,13 @@ def solve_neg(oper, world):
         #         world.remove_branch_node(oper, child, world.formula_tree)
         # in case there is a negation pileup
     world.inherit_state(oper)
-    # FIXME: remove if not needed
-    print(type(world.formula_tree))
     # check atom's truth valuation in the model
     atom = oper.children[0]
+    # FIXME: remove if not needed
+    if atom not in world.formula_tree:
+        print(f"ERORR: atom {atom.name} not found in world.formula_tree\n full list:")
+        for node in world.formula_tree:
+            print(node.name)
     result = world.access_atom(atom.name, False, atom.state)
     # if contradiction encountered, wipe the branch
     if result == False:
@@ -111,10 +115,10 @@ def solve_neg_or(oper, world):
         print("binary operator with wrong number of children!")
         render_branch(oper)
         sys.exit("NEG-OR ERROR")
-    # apply negation to both child-nodes
+    world.inherit_state(oper)
+    # apply negation to both child-nodes, with neg-node inserted between oper and children
     for child in oper.children:
         insert_neg_node(oper, child, world.formula_tree)
-    world.inherit_state(oper)
     world.detach_parent(oper)
     world.formula_tree.remove(oper)
 
@@ -248,14 +252,16 @@ def solve_branching(oper, world):
         # outcome depends on rule used:
     # not-AND => not-A, not-B
     if rule == "NEG_AND":
-        make_neg(left_branch, left_branch[0])
-        make_neg(right_branch, right_branch[0])
+        make_neg(left_branch, left_branch[0], world.node_total+1)
+        make_neg(right_branch, right_branch[0], world.node_total+2)
+        world.node_total += 2
     # OR => no negation necessary
     elif rule == "OR":
         pass
     # IMP => not-A, right
     elif rule == "IMP":
-        make_neg(left_branch, left_branch[0])
+        make_neg(left_branch, left_branch[0], world.node_total+1)
+        world.node_total += 1
     # BI_IMP => A + B, not-A + not-B
     # FIXME: check if replicate_branch works properly??
     elif rule == "BI_IMP":
@@ -263,8 +269,9 @@ def solve_branching(oper, world):
         # temp_copy = deepcopy(left_branch)
         left_branch.extend(deepcopy(right_branch))
         # right branch contains negations of A as well as B
-        make_neg(right_branch, right_branch[0])
-        make_neg(temp_copy, temp_copy[0])
+        make_neg(right_branch, right_branch[0], world.node_total+1)
+        make_neg(temp_copy, temp_copy[0], world.node_total+2)
+        world.node_total += 2
         right_branch.extend(temp_copy)
     # NEG_BI_IMP => A + not-B, not-A + B
     elif rule == "NEG_BI_IMP":
@@ -272,8 +279,9 @@ def solve_branching(oper, world):
         temp_left = world.replicate_branch(left_branch[0])
         # temp_right = deepcopy(right_branch)
         # temp_left = deepcopy(left_branch)
-        make_neg(temp_left, temp_left[0])
-        make_neg(temp_right, temp_right[0])
+        make_neg(temp_left, temp_left[0], world.node_total+1)
+        make_neg(temp_right, temp_right[0], world.node_total+2)
+        world.node_total += 2
         left_branch.extend(temp_right)
         right_branch.extend(temp_left)
     # reinsert left branch into world-copy, right branch into original model object
@@ -305,6 +313,9 @@ def priority_sort(el):
 def solver_loop(world):
     resolvables = find_roots(world.formula_tree)
     print(f"\n new solver loop: {len(world.formula_tree)} nodes available, of them {len(resolvables)} roots")
+    print("nodes in the list:")
+    for node in world.formula_tree:
+            print(node.name)
     resolvables.sort(key=lambda x: x.priority)
     print("\ncurrent available roots in priority order:")
     for n in resolvables:
@@ -377,13 +388,14 @@ main_world = Model(3, 2)                     # TODO: automate
 # all_worlds.append(main_world)
 
 # generate formula of given length and max operator priority
-generate_formula(main_world.formula_tree, 7)
+generate_formula(main_world, 7)
 # find root nodes (should only be one!)
 roots = find_roots(main_world.formula_tree)
 if len(roots) > 1:
     sys.exit("ERROR more than one top connective")
 # negate first connective for the tableau
-make_neg(main_world.formula_tree, roots[0])
+make_neg(main_world.formula_tree, roots[0], main_world.node_total+1)
+main_world.node_total += 1
 # set state 0 for the top connective
 main_world.formula_tree[-1].state = 0
 

@@ -30,18 +30,20 @@ num_agents = 2
 
 # TODO: should atoms/agents have priority tier? check with resolving negations in tableau
 # makes a node with a propositional atom
-def write_atom(formula_tree, atom):
-    formula_tree.append(Node(atom, type="atom", state=None, priority=0))
-    return formula_tree[-1]
+def write_atom(world, atom):
+    world.formula_tree.append(Node(atom, type="atom", state=None, priority=0, id=world.node_total+1))
+    world.node_total += 1
+    return world.formula_tree[-1]
 
 # makes a node with an agent
 # TODO: connect atom and agent with model? do we actually need it for the generator?
-def write_agent(formula_tree, agent):
-    formula_tree.append(Node(agent, type="agent", state=None, priority=0))
-    return formula_tree[-1]
+def write_agent(world, agent):
+    world.formula_tree.append(Node(agent, type="agent", state=None, priority=0, id=world.node_total+1))
+    world.node_total += 1
+    return world.formula_tree[-1]
 
 # make negation operator, given a formula
-def make_neg(formula_tree, formula):
+def make_neg(formula_tree, formula, new_id):
     state_id = formula.state
     # if formula starts with negation, make it double
     if formula.name == "NEG":
@@ -58,10 +60,10 @@ def make_neg(formula_tree, formula):
         formula.name = formula.name.replace("NEG_", "")
         # reassign priority and state (if node has state identifier)
         formula.priority = connectives[formula.name]
-        formula_tree.append(Node("DOUBLE_NEG", children=[formula], type="operator", state=state_id, priority=1))
+        formula_tree.append(Node("DOUBLE_NEG", children=[formula], type="operator", state=state_id, priority=1, id=new_id))
         return formula_tree[-1]
     # otherwise, assume we're negating an atom
-    formula_tree.append(Node("NEG", children=[formula], type="operator", state=state_id, priority=1))
+    formula_tree.append(Node("NEG", children=[formula], type="operator", state=state_id, priority=1, id=new_id))
     return formula_tree[-1]
 
 # insert new negation node between parent and child
@@ -72,12 +74,12 @@ def insert_neg_node(parent_node, child_node, formula_tree):
         child_node.parent = neg_node
 
 # make operator K or M (or their negations), given existing formula and agent
-def make_epist(formula_tree, oper, agent, formula):
-    formula_tree.append(Node(oper, children=[agent, formula], type="operator", state=None, priority=connectives[oper]))
+def make_epist(formula_tree, oper, agent, formula, new_id):
+    formula_tree.append(Node(oper, children=[agent, formula], type="operator", state=None, priority=connectives[oper], id=new_id))
 
 # make binary connective (and, or, implies, and negations of them)
-def make_bin_con(formula_tree, connective, left, right):
-    formula_tree.append(Node(connective, children=[left, right], type="operator", state=None, priority=connectives[connective]))
+def make_bin_con(formula_tree, connective, left, right, new_id):
+    formula_tree.append(Node(connective, children=[left, right], type="operator", state=None, priority=connectives[connective], id=new_id))
 
 
 # find all top (root) nodes and return a list of them
@@ -108,35 +110,38 @@ def rnd_op_choice(pr_tier=choice([2,5])):
     return selected
 
 # construct a new formula node with randomly chosen op/con
-def build_rnd_subformula(formula_tree, chosen):
+def build_rnd_subformula(world, chosen):
     print("oper/conn choice: ", chosen)
     # if formula is empty or 50/50 chance to create new sub-branch
     # AND there's not too few operations left
     # TODO: do I even need random atom generation?
     # if (not formula_tree or (randint(0,9) < 3)):
     #     write_atom(formula_tree, choice(num_atoms))          # TODO: replace with reference to model later
-    all_roots = find_roots(formula_tree)
+    all_roots = find_roots(world.formula_tree)
     subformula = choice(all_roots)
     # if the chosen op/conn is negation
     if connectives[chosen] == 1:
-        make_neg(formula_tree, subformula)
+        make_neg(world.formula_tree, subformula, world.node_total+1)
+        world.node_total += 1
     # if epistemic operator is chosen
     elif connectives[chosen] == 3 or connectives[chosen] == 4:
-        new_agent = write_agent(formula_tree, randint(1, num_agents))     # TODO: replace with reference to model later?
-        make_epist(formula_tree, chosen, new_agent, subformula)
+        new_agent = write_agent(world, randint(1, num_agents))     # TODO: replace with reference to model later?
+        make_epist(world.formula_tree, chosen, new_agent, subformula, world.node_total+1)
+        world.node_total += 1
     else:
         # otherwise, it's a binary connective
         # write another atom if there's only one root available
         if len(all_roots) < 2:
-            new_atom = write_atom(formula_tree, choice(num_atoms))       # TODO: don't forget to replace atoms
+            new_atom = write_atom(world, choice(num_atoms))       # TODO: don't forget to replace atoms
             all_roots.append(new_atom)
         two_branches = sample(all_roots, k=2)
-        make_bin_con(formula_tree, chosen, two_branches[0], two_branches[1])
+        make_bin_con(world.formula_tree, chosen, two_branches[0], two_branches[1], world.node_total+1)
+        world.node_total += 1
 
 # renders a simplified formula tree (without path in nodes)
 def render_branch(element):
     for pre, _, node in RenderTree(element):
-        print("%s%s/%s" % (pre, node.name, node.state))
+        print("%s%s/%s (%s)" % (pre, node.name, node.state, node.priority))
 
 
 # TODO: implicit/distributed knowledge operator I?
@@ -144,18 +149,18 @@ def render_branch(element):
 # generates a formula of 'countdown' amount of operators.
 # arg 'permitted' denotes the maximum priority of allowed operators
 # FIXME: remove the limit on op choice after testing!
-def generate_formula(formula_tree, countdown):
+def generate_formula(world, countdown):
     # list formula_tree will store the nodes containing elements (atoms, agents, operators, connectives)
     # of the formula in tree form
     # start by generating random atoms
     initial_atoms = countdown / 2
     while initial_atoms > 0:
-        write_atom(formula_tree, choice(num_atoms))
+        write_atom(world, choice(num_atoms))
         initial_atoms -= 1
     # count down the max number of operators
     while countdown > 0:
         print(countdown, " operations left")
-        current_roots = find_roots(formula_tree)
+        current_roots = find_roots(world.formula_tree)
         print(len(current_roots), " branches in existence")
         # if there are more unconnected formula sub-branches
         # than there are op/conns to generate,
@@ -178,13 +183,13 @@ def generate_formula(formula_tree, countdown):
             # if no unifying necessary
             else:
                 selected = rnd_op_choice(randint(1,5))
-        build_rnd_subformula(formula_tree, selected)
+        build_rnd_subformula(world, selected)
         # if chosen operator actually contains 2 op/conns, count them properly
         if "_" in selected and selected != "BI_IMP":
             countdown -= 2
         else:
             countdown -= 1
-    all_branches = find_roots(formula_tree)
+    all_branches = find_roots(world.formula_tree)
     if len(all_branches) > 1:
         print("SPLIT TREE!")
     # print formula tree for checking

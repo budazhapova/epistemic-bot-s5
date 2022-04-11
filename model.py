@@ -15,6 +15,7 @@ class Model:
         self.agents = list(range(num_agents+1))
         self.formula_tree = []
         self.sidebar = []
+        self.node_total = 0
 
     # TODO: remove if proves unneeded
     # start with letter 'a' and add new atoms alphabetically as needed
@@ -73,7 +74,9 @@ class Model:
     def detach_parent(self, oper_node):
         for child in oper_node.children:
             child.parent = None
-            if child.parent:
+            if child.is_root:
+                print(f"parent {oper_node.name} successfully detached from child {child.name}")
+            else:
                 print(f"FAILURE DETACHING FROM for node {child.name}")
 
     # remove a node from the middle of branch and knit the edges
@@ -121,10 +124,18 @@ class Model:
     def replicate_branch(self, root):
         new_branch = []
         for node in PreOrderIter(root):
-            new_branch.append(deepcopy(node))
+            # copy all node attributes without referencing original-tree nodes
+            newnode = Node(node.name, type=node.type, state=node.state, priority=node.priority, id=node.id)
+            # replicate parent-child relations in the new copy
+            parent_id = node.parent.id
+            for replica in new_branch:
+                if replica.id == parent_id:
+                    newnode.parent = replica
+            new_branch.append(newnode)
+            # FIXME: is likely unnecessary; remove later?
             # if root-node has parents, detach it
-            if node == root and not root.is_root:
-                new_branch[-1].parent = None
+            # if node == root and not root.is_root:
+            #     new_branch[-1].parent = None
         if len(new_branch) < 1:
             print("copying branch failed!")
         else:
@@ -142,7 +153,12 @@ class Model:
         # wipe current nodes from leaves up
         # current_node.parent = None
         print(f"wiping node {current_node.name}")
-        tree.remove(current_node)
+        if current_node in tree:
+            print(f"{current_node.name} wiped from list")
+            tree.remove(current_node)
+        else:
+            print(f"{current_node.name} not found in tree/list")
+            del current_node
         return
 
     
