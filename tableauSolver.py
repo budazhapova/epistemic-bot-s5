@@ -1,5 +1,6 @@
 from model import Model
 from formulaBuilder import *
+from presets import load_preset
 from anytree import Node, RenderTree
 from copy import deepcopy
 import sys
@@ -118,7 +119,8 @@ def solve_neg_or(oper, world):
     world.inherit_state(oper)
     # apply negation to both child-nodes, with neg-node inserted between oper and children
     for child in oper.children:
-        insert_neg_node(oper, child, world.formula_tree)
+        world.node_total += 1
+        insert_neg_node(oper, child, world.formula_tree, world.node_total)
     world.detach_parent(oper)
     world.formula_tree.remove(oper)
 
@@ -130,12 +132,14 @@ def solve_neg_imp(oper, world):
         sys.exit("NEG-IMP ERROR")
     # 'a does not imply b' means 'a and not-b'
     right_child = oper.children[1]
-    insert_neg_node(oper, right_child, world.formula_tree)
+    world.node_total += 1
+    insert_neg_node(oper, right_child, world.formula_tree, world.node_total)
     world.inherit_state(oper)
     world.detach_parent(oper)
     world.formula_tree.remove(oper)
 
 # PRIORITY TIER 3
+# TODO: rewrite to deal with taking formula from sidebar and copying it to main tree
 # deals with box-like operators (K or not-M)
 def resolve_epist_box(oper, new_state_id, world, negation=False, first_call=True):
     # 'first_call' means this is the first time we're resolving this operator
@@ -147,7 +151,8 @@ def resolve_epist_box(oper, new_state_id, world, negation=False, first_call=True
     # if not-M is being resolved, push negation on top of formula
     if negation:
         child_node = oper.children[1]
-        insert_neg_node(oper, child_node, source)
+        world.node_total += 1
+        insert_neg_node(oper, child_node, source, world.node_total)
     # assign state to the formula under epistemic operator
     world.confer_state(oper, new_state_id)
     # if first time resolving, remove epist oper (otherwise keep in the sidebar)
@@ -198,6 +203,7 @@ def repeat_solve_K_or_neg_M(oper, new_state_id, world):
     agent = oper.children[0].name
     print(f"sidebar new relation: state {oper.state} to {new_state_id} for agent {agent}")
     # copy subformula from sidebar to formula tree
+    # TODO: replace with replicate_branch method
     top_index = world.copy_subformula(oper, world.formula_tree)
     top_node = world.formula_tree[top_index]
     resolve_epist_box(top_node, new_state_id, world, negation, first_call=False)
@@ -218,7 +224,8 @@ def solve_M_or_neg_K(oper, world):
     # if resolving NEG-K, insert negation
     if oper.name == "NEG_K":
         right_child = oper.children[1]
-        insert_neg_node(oper, right_child, world.formula_tree)
+        world.node_total += 1
+        insert_neg_node(oper, right_child, world.formula_tree, world.node_total)
     # change child's state, remove epist operator and agent
     world.confer_state(oper, new_state_id)
     world.remove_epist_op(oper, world.formula_tree)
@@ -315,7 +322,7 @@ def solver_loop(world):
     print(f"\n new solver loop: {len(world.formula_tree)} nodes available, of them {len(resolvables)} roots")
     print("nodes in the list:")
     for node in world.formula_tree:
-            print(node.name)
+            print(f"{node.name}[{node.id}]")
     resolvables.sort(key=lambda x: x.priority)
     print("\ncurrent available roots in priority order:")
     for n in resolvables:
@@ -387,8 +394,15 @@ main_world = Model(3, 2)                     # TODO: automate
 # all_worlds = []
 # all_worlds.append(main_world)
 
+WORKMODE = "generate"
+# WORKMODE = "load"
+
 # generate formula of given length and max operator priority
-generate_formula(main_world, 7)
+if WORKMODE == "generate":
+    generate_formula(main_world, 7)
+elif WORKMODE == "load":
+    main_world.formula_tree = load_preset(1)
+    main_world.node_total = len(main_world.formula_tree)
 # find root nodes (should only be one!)
 roots = find_roots(main_world.formula_tree)
 if len(roots) > 1:
@@ -397,7 +411,9 @@ if len(roots) > 1:
 make_neg(main_world.formula_tree, roots[0], main_world.node_total+1)
 main_world.node_total += 1
 # set state 0 for the top connective
-main_world.formula_tree[-1].state = 0
+roots = find_roots(main_world.formula_tree)
+for root in roots:
+    root.state = 0
 
 # TODO: consider an outer loop that accounts for branching?
 while main_world.formula_tree:

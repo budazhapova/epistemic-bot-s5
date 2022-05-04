@@ -1,6 +1,7 @@
 from model import Model
 from anytree import Node, RenderTree, ContStyle
 from random import randint, choice, sample
+from stringConverter import translate_formula
 
 #TODO: load requirements from file?
 
@@ -67,8 +68,8 @@ def make_neg(formula_tree, formula, new_id):
     return formula_tree[-1]
 
 # insert new negation node between parent and child
-def insert_neg_node(parent_node, child_node, formula_tree):
-    neg_node = make_neg(formula_tree, child_node)
+def insert_neg_node(parent_node, child_node, formula_tree, new_id):
+    neg_node = make_neg(formula_tree, child_node, new_id)
     if neg_node != 0:
         neg_node.parent = parent_node
         child_node.parent = neg_node
@@ -141,7 +142,7 @@ def build_rnd_subformula(world, chosen):
 # renders a simplified formula tree (without path in nodes)
 def render_branch(element):
     for pre, _, node in RenderTree(element):
-        print("%s%s/%s (%s)" % (pre, node.name, node.state, node.priority))
+        print("%s%s[%s]/%s (%s)" % (pre, node.name, node.id, node.state, node.priority))
 
 
 # TODO: implicit/distributed knowledge operator I?
@@ -196,6 +197,9 @@ def generate_formula(world, countdown):
     for elem in all_branches:
         render_branch(elem)
     print("end formula-builder output\n")
+
+    line_format = translate_formula(all_branches[0])
+    print(' '.join(line_format))
     # return formula_tree
 
 # generate_formula(6)
