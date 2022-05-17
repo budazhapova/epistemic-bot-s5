@@ -401,7 +401,7 @@ WORKMODE = "generate"
 if WORKMODE == "generate":
     generate_formula(main_world, 7)
 elif WORKMODE == "load":
-    main_world.formula_tree = load_preset(1)
+    main_world.formula_tree = load_preset(3)
     main_world.node_total = len(main_world.formula_tree)
 # find root nodes (should only be one!)
 roots = find_roots(main_world.formula_tree)

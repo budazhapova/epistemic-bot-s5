@@ -17,19 +17,32 @@ def translate_formula(root_node):
     if root_node.is_leaf:
         return list(str(root_node.name))
 
+    # alternative nesting
+    # if children nodes have children themselves
+    # TODO: check for atom-negation cases??
+
     # TODO: add handling for "neg-atom" and brackets for nested binary operators
-    if "NEG_" in root_node.name:
-        stroutput.append(0)
-        stroutput.append('\xac(')
+    if "NEG" in root_node.name:
+        # stroutput.append(0)
+        stroutput.append('\xac')
         # TODO: if list starts with 0, pop it and add a bracket in the end
-    elif root_node.name == "DOUBLE_NEG":
+        if root_node.name == "DOUBLE_NEG":
+            # stroutput.append(0)
+            stroutput.append('\xac')
+    # if not main connective and it's not a straight negation
+    if root_node.depth > 0 and len(root_node.children) > 1:
         stroutput.append(0)
-        stroutput.append('\xac\xac(')
+        stroutput.append('(')
+    elif "NEG_" in root_node.name:
+        stroutput.append(0)
+        stroutput.append('(')
+    # elif root_node.name == "NEG":
+    #     stroutput.append('\xac')
 
     if "AND" in root_node.name:
-        operator = '\u2227'
+        operator = '&&'
     elif "OR" in root_node.name:
-        operator = '\u2228'
+        operator = '||'
     elif root_node.name == "IMP" or root_node.name == "NEG_IMP":
         operator = '\u2192'
     elif "BI_IMP" in root_node.name:
@@ -50,8 +63,9 @@ def translate_formula(root_node):
     if operator:
         stroutput.append(operator)
         stroutput.extend(right_part)
-    if stroutput[0] == 0:
-        stroutput.pop(0)
+    # put closing brackets everywhere
+    while 0 in stroutput:
+        stroutput.remove(0)
         stroutput.append(')')
 
     return stroutput

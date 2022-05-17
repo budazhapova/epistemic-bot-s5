@@ -27,5 +27,12 @@ def load_preset(num_preset):
         nodeB = Node("b", parent=nodeAnd, type="atom", priority=0, state=None, id=4)
         preset_tree.append(nodeB)
         nodeC = Node("c", parent=nodeAnd, type="atom", priority=0, state=None, id=5)
-        
+    elif num_preset == 3:
+        nodeBiImp = Node("BI_IMP", type="operator", priority=2, state=None, id=1)
+        preset_tree.append(nodeBiImp)
+        nodeA = Node("a", parent=nodeBiImp, type = "atom", priority=0, state=None, id=2)
+        preset_tree.append(nodeA)
+        nodeB = Node("b", parent=nodeBiImp, type="atom", priority=0, state=None, id=3)
+        preset_tree.append(nodeB)
+
     return preset_tree

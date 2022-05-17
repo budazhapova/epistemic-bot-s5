@@ -128,10 +128,11 @@ class Model:
             newnode = Node(node.name, type=node.type, state=node.state, priority=node.priority, id=node.id)
             # replicate parent-child relations in the new copy
             orig_parent = node.parent
-            parent_id = orig_parent.id
-            for replica in new_branch:
-                if replica.id == parent_id:
-                    newnode.parent = replica
+            if orig_parent:
+                parent_id = orig_parent.id
+                for replica in new_branch:
+                    if replica.id == parent_id:
+                        newnode.parent = replica
             new_branch.append(newnode)
             # FIXME: is likely unnecessary; remove later?
             # if root-node has parents, detach it
