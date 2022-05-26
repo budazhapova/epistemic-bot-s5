@@ -15,6 +15,7 @@ class Model:
         self.agents = list(range(num_agents+1))
         self.formula_tree = []
         self.sidebar = []
+        self.num_agents = num_agents
         self.node_total = 0
 
     # TODO: remove if proves unneeded
@@ -167,7 +168,11 @@ class Model:
     # returns an exact copy of the current model
     def copy_model(self, roots_main, roots_sidebar):
         new_model = Model(len(self.atoms), len(self.agents), len(self.states))
-        new_model = deepcopy(self)
+        # copy all contents of the original model; atoms initialized by default
+        new_model.states = deepcopy(self.states)
+        new_model.agents = deepcopy(self.agents)
+        new_model.node_total = deepcopy(self.node_total)
+        # new_model = deepcopy(self)
         if len(roots_main) < 1:
             print("NO ROOTS PASSED DURING COPYING of pre-attach model")
         for n in roots_main:
@@ -179,7 +184,7 @@ class Model:
             branch_copy = self.replicate_branch(s)
             new_model.sidebar.extend(branch_copy)
         # new_model.sidebar = deepcopy(self.sidebar)
-        new_model.states = deepcopy(self.states)
+        # new_model.states = deepcopy(self.states)
         if not new_model:
             print("model object copying failed!")
         else:

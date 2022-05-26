@@ -1,5 +1,6 @@
 from model import Model
 from formulaBuilder import *
+from stringConverter import *
 from presets import load_preset
 from anytree import Node, RenderTree
 from copy import deepcopy
@@ -15,7 +16,7 @@ def trigger_sidebar(agent, old_state, new_state, world):
     # first, find available roots in the sidebar
     epist_nodes = find_roots(world.sidebar)
     for n in epist_nodes:
-        # if there's a box-like operator with the same agent in the same set of states,
+        # if there's a box-like operator with the same agent in the same pool of states,
         #   solve it again for new state
         if n.state in rel_set and n.children[0].name == agent:
             repeat_solve_K_or_neg_M(n, new_state, world)
@@ -141,23 +142,16 @@ def solve_neg_imp(oper, world):
 # PRIORITY TIER 3
 # TODO: rewrite to deal with taking formula from sidebar and copying it to main tree
 # deals with box-like operators (K or not-M)
-def resolve_epist_box(oper, new_state_id, world, negation=False, first_call=True):
-    # 'first_call' means this is the first time we're resolving this operator
-    # and the original is located in the main formula_tree, not the sidebar
-    if first_call:
-        source = world.formula_tree
-    else:
-        source = world.sidebar
+def resolve_epist_box(oper, new_state_id, world, negation=False):
     # if not-M is being resolved, push negation on top of formula
     if negation:
         child_node = oper.children[1]
         world.node_total += 1
-        insert_neg_node(oper, child_node, source, world.node_total)
+        insert_neg_node(oper, child_node, world.formula_tree, world.node_total)
     # assign state to the formula under epistemic operator
     world.confer_state(oper, new_state_id)
-    # if first time resolving, remove epist oper (otherwise keep in the sidebar)
-    if first_call:
-        world.remove_epist_op(oper, source)
+    # remove epist oper, keep the rest of the formula
+    world.remove_epist_op(oper, world.formula_tree)
 
 # K stands for (agent knows subformula),
 # not-M stands for (agent doesn't consider subformula possible)
@@ -188,11 +182,12 @@ def solve_initial_K_neg_M(oper, world):
         # do reflexive access last
         if state_id == home_state:
             pass
-        top_index = world.copy_subformula(oper, world.formula_tree)
-        top_node = world.formula_tree[top_index]
-        resolve_epist_box(top_node, state_id, world, negation)
-    # finally, state accesses itself
-    resolve_epist_box(oper, home_state, world, negation)
+        new_branch = world.replicate_branch(oper)
+        world.formula_tree.extend(new_branch)
+        local_root = new_branch[0]
+        resolve_epist_box(local_root, state_id, world, negation)
+    # in any case, state always accesses itself
+    # resolve_epist_box(oper, home_state, world, negation)
 
 # TODO: can these two be folded into one??
 # works with previously resolved box-like epist operators from the sidebar
@@ -201,12 +196,14 @@ def repeat_solve_K_or_neg_M(oper, new_state_id, world):
     if oper.name == "NEG_M":
         negation = True
     agent = oper.children[0].name
+    print(f"invoking {oper.name} from the sidebar")
     print(f"sidebar new relation: state {oper.state} to {new_state_id} for agent {agent}")
     # copy subformula from sidebar to formula tree
-    # TODO: replace with replicate_branch method
-    top_index = world.copy_subformula(oper, world.formula_tree)
-    top_node = world.formula_tree[top_index]
-    resolve_epist_box(top_node, new_state_id, world, negation, first_call=False)
+    # FIXME: check efficiency
+    new_branch = world.replicate_branch(oper)
+    world.formula_tree.extend(new_branch)
+    local_root = new_branch[0]
+    resolve_epist_box(local_root, new_state_id, world, negation)
 
 # PRIORITY TIER 4 -- diamondlike operators
 # resolve M (agent considers possible) operator
@@ -327,6 +324,7 @@ def solver_loop(world):
     print("\ncurrent available roots in priority order:")
     for n in resolvables:
         render_branch(n)
+        print(translate_formula(n))
     if world.sidebar:
         sidebar_roots = find_roots(world.sidebar)
         print("sidebar:")
@@ -362,6 +360,7 @@ def solver_loop(world):
     if result == -99:
         print("CONTRADICTION FOUND")
         world.formula_tree.clear()
+        world.sidebar.clear()
         del world
         return
     print("current model state:")
@@ -394,14 +393,14 @@ main_world = Model(3, 2)                     # TODO: automate
 # all_worlds = []
 # all_worlds.append(main_world)
 
-WORKMODE = "generate"
-# WORKMODE = "load"
+# WORKMODE = "generate"
+WORKMODE = "load"
 
 # generate formula of given length and max operator priority
 if WORKMODE == "generate":
     generate_formula(main_world, 7)
 elif WORKMODE == "load":
-    main_world.formula_tree = load_preset(3)
+    main_world.formula_tree = load_preset(5)
     main_world.node_total = len(main_world.formula_tree)
 # find root nodes (should only be one!)
 roots = find_roots(main_world.formula_tree)

@@ -12,10 +12,10 @@ connectives = {
     "AND": 2,
     "NEG_OR": 2,
     "NEG_IMP": 2,
-    # "K": 3,
-    # "NEG_M": 3,
-    # "NEG_K": 4,
-    # "M": 4,
+    "K": 3,
+    "NEG_M": 3,
+    "NEG_K": 4,
+    "M": 4,
     "OR": 5,
     "NEG_AND": 5,
     "IMP": 5,
@@ -126,14 +126,14 @@ def build_rnd_subformula(world, chosen):
         world.node_total += 1
     # if epistemic operator is chosen
     elif connectives[chosen] == 3 or connectives[chosen] == 4:
-        new_agent = write_agent(world, randint(1, num_agents))     # TODO: replace with reference to model later?
+        new_agent = write_agent(world, randint(1, world.num_agents))
         make_epist(world.formula_tree, chosen, new_agent, subformula, world.node_total+1)
         world.node_total += 1
     else:
         # otherwise, it's a binary connective
         # write another atom if there's only one root available
         if len(all_roots) < 2:
-            new_atom = write_atom(world, choice(num_atoms))       # TODO: don't forget to replace atoms
+            new_atom = write_atom(world, choice(world.atoms))
             all_roots.append(new_atom)
         two_branches = sample(all_roots, k=2)
         make_bin_con(world.formula_tree, chosen, two_branches[0], two_branches[1], world.node_total+1)
@@ -156,7 +156,7 @@ def generate_formula(world, countdown):
     # start by generating random atoms
     initial_atoms = countdown / 2
     while initial_atoms > 0:
-        write_atom(world, choice(num_atoms))
+        write_atom(world, choice(world.atoms))
         initial_atoms -= 1
     # count down the max number of operators
     while countdown > 0:
@@ -170,9 +170,9 @@ def generate_formula(world, countdown):
             selected = rnd_op_choice()      # default argument: 2 or 5
         # otherwise, choose from all available
         else:
-            # FIXME: remove the limited operator selection
-            selected = rnd_op_choice(choice([1,2,5]))
-            # selected = rnd_op_choice(randint(1,5))
+            # FIXME: removed the limited operator selection, test working
+            # selected = rnd_op_choice(choice([1,2,5]))
+            selected = rnd_op_choice(randint(1,5))
         # ensure we don't end up with one extra operator in the last round.
         # if selected is 'double neg' or 'not-smth', try again
         while countdown == 1 and "_" in selected:
@@ -199,7 +199,7 @@ def generate_formula(world, countdown):
     print("end formula-builder output\n")
 
     line_format = translate_formula(all_branches[0])
-    print(' '.join(line_format))
+    print(line_format)
     # return formula_tree
 
 # generate_formula(6)

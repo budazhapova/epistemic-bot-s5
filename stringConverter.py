@@ -11,7 +11,7 @@ symbol_codes = {
 }
 
 # recursively traverses the 
-def translate_formula(root_node):
+def convert(root_node):
     stroutput = []
     operator = None
     if root_node.is_leaf:
@@ -19,18 +19,15 @@ def translate_formula(root_node):
 
     # alternative nesting
     # if children nodes have children themselves
-    # TODO: check for atom-negation cases??
 
-    # TODO: add handling for "neg-atom" and brackets for nested binary operators
     if "NEG" in root_node.name:
         # stroutput.append(0)
         stroutput.append('\xac')
-        # TODO: if list starts with 0, pop it and add a bracket in the end
         if root_node.name == "DOUBLE_NEG":
             # stroutput.append(0)
             stroutput.append('\xac')
-    # if not main connective and it's not a straight negation
-    if root_node.depth > 0 and len(root_node.children) > 1:
+    # if not the true root/main connective and left child is not atom/agent
+    if root_node.depth > 0 and not root_node.children[0].is_leaf:
         stroutput.append(0)
         stroutput.append('(')
     elif "NEG_" in root_node.name:
@@ -47,21 +44,36 @@ def translate_formula(root_node):
         operator = '\u2192'
     elif "BI_IMP" in root_node.name:
         operator = '\u2194'
-    left_part = translate_formula(root_node.children[0])
-    if operator:
-        right_part = translate_formula(root_node.children[1])
-    # replaces string agent identifiers with appropriate subscript unicode characters
-    if "K" in root_node.name or "M" in root_node.name:
+    elif "K" in root_node.name or "M" in root_node.name:
+        left_part = root_node.children[0].name
+        if "K" in root_node.name:
+            operator = "K"
+        elif "M" in root_node.name:
+            operator = "M"
+        # replaces string agent identifiers with appropriate subscript unicode characters
         # maximum of 2 agents
-        if left_part == ['1']:
-            left_part = ['\u2081']
-        elif left_part == ['2']:
-            left_part = ['\u2082']
+        # FIXME: change if more agents used
+        if left_part == 1:
+            left_part = '\u2081'
+        elif left_part == 2:
+            left_part = '\u2082'
+        # TODO: rework conversion for epistemic operators
+    if not operator == "K" and not operator == "M":
+        left_part = convert(root_node.children[0])
+    if operator:
+        right_part = convert(root_node.children[1])
+    
+    
     
     # now add parts together
-    stroutput.extend(left_part)
+    # left-operator-right order unless operator is epistemic
+    if not operator == "K" and not operator == "M":
+        stroutput.extend(left_part)
     if operator:
         stroutput.append(operator)
+        # if epistemic operator, left child (agent) needs to be after the epist. op.
+        if operator == "K" or operator == "M":
+            stroutput.append(left_part)
         stroutput.extend(right_part)
     # put closing brackets everywhere
     while 0 in stroutput:
@@ -69,3 +81,9 @@ def translate_formula(root_node):
         stroutput.append(')')
 
     return stroutput
+
+def translate_formula(root_node):
+    final_formula = convert(root_node)
+    final_formula = ' '.join(final_formula)
+    
+    return final_formula
