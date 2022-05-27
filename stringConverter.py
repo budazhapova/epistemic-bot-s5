@@ -26,10 +26,12 @@ def convert(root_node):
         if root_node.name == "DOUBLE_NEG":
             # stroutput.append(0)
             stroutput.append('\xac')
-    # if not the true root/main connective and left child is not atom/agent
-    if root_node.depth > 0 and not root_node.children[0].is_leaf:
-        stroutput.append(0)
-        stroutput.append('(')
+    # if not the true root/main connective and it's not a negation before single atom
+    if root_node.depth > 0 and len(root_node.children) > 1:
+        # if it's not a "agent knows single atom" situation
+        if not root_node.children[0].type == "agent" and not root_node.children[1].is_leaf:
+            stroutput.append(0)
+            stroutput.append('(')
     elif "NEG_" in root_node.name:
         stroutput.append(0)
         stroutput.append('(')

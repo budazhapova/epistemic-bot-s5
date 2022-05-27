@@ -171,23 +171,21 @@ def solve_initial_K_neg_M(oper, world):
         relations = {home_state}
     print(f"retrieved relations of state {home_state}: {relations}")
     # first, put a copy of current subtree into sidebar
-    world.copy_subformula(oper, world.sidebar)
+    sidebar_copy = world.replicate_branch(oper)
+    world.sidebar.extend(sidebar_copy)
     # then, resolve the original
-    # if only reflexive relation exists, no extra steps needed
-    if len(relations) == 1:
-        resolve_epist_box(oper, home_state, world, negation)
-        return
     # otherwise there's more than 1 accessible state
     for state_id in relations:
-        # do reflexive access last
+        # do reflexive access last (states get retrieved in random order)
         if state_id == home_state:
             pass
-        new_branch = world.replicate_branch(oper)
-        world.formula_tree.extend(new_branch)
-        local_root = new_branch[0]
-        resolve_epist_box(local_root, state_id, world, negation)
-    # in any case, state always accesses itself
-    # resolve_epist_box(oper, home_state, world, negation)
+        else:
+            new_branch = world.replicate_branch(oper)
+            world.formula_tree.extend(new_branch)
+            local_root = new_branch[0]
+            resolve_epist_box(local_root, state_id, world, negation)
+    # in any case, resolve epistemic operator for the home state (accesses itself)
+    resolve_epist_box(oper, home_state, world, negation)
 
 # TODO: can these two be folded into one??
 # works with previously resolved box-like epist operators from the sidebar
@@ -242,8 +240,6 @@ def solve_branching(oper, world):
     # left_topnode = oper.children[0]
     # right_topnode = oper.chldren[1]
     # world.detach_parent(oper)
-    # world.copy_subformula(oper.children[0], left_branch)
-    # world.copy_subformula(oper.children[1], right_branch)
     # TODO: which branch copying method to use??
     left_branch = world.replicate_branch(oper.children[0])
     right_branch = world.replicate_branch(oper.children[1])
@@ -400,7 +396,7 @@ WORKMODE = "load"
 if WORKMODE == "generate":
     generate_formula(main_world, 7)
 elif WORKMODE == "load":
-    main_world.formula_tree = load_preset(5)
+    main_world.formula_tree = load_preset(6)
     main_world.node_total = len(main_world.formula_tree)
 # find root nodes (should only be one!)
 roots = find_roots(main_world.formula_tree)

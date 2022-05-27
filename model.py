@@ -111,15 +111,6 @@ class Model:
             else:
                 child.parent = None
         formula_tree.remove(epist_op)
-
-    # records a copy of given subformula to the model's sidebar for future use, returns root index
-    def copy_subformula(self, root, destination):
-        root_index = len(destination)
-        # destination.append(root)
-        # destination.extend(root.descendants)
-        # FIXME: see if append or extend works better
-        destination.append(deepcopy(root))
-        return root_index
     
     # copies a branch of formula node by node and return the resulting list
     def replicate_branch(self, root):
