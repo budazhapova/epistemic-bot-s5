@@ -389,14 +389,14 @@ main_world = Model(3, 2)                     # TODO: automate
 # all_worlds = []
 # all_worlds.append(main_world)
 
-# WORKMODE = "generate"
-WORKMODE = "load"
+WORKMODE = "generate"
+# WORKMODE = "load"
 
 # generate formula of given length and max operator priority
 if WORKMODE == "generate":
-    generate_formula(main_world, 7)
+    generate_formula(main_world, 10)
 elif WORKMODE == "load":
-    main_world.formula_tree = load_preset(6)
+    main_world.formula_tree = load_preset(5)
     main_world.node_total = len(main_world.formula_tree)
 # find root nodes (should only be one!)
 roots = find_roots(main_world.formula_tree)

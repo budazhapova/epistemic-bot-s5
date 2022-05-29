@@ -154,7 +154,7 @@ def generate_formula(world, countdown):
     # list formula_tree will store the nodes containing elements (atoms, agents, operators, connectives)
     # of the formula in tree form
     # start by generating random atoms
-    initial_atoms = countdown / 2
+    initial_atoms = countdown * 2/3
     while initial_atoms > 0:
         write_atom(world, choice(world.atoms))
         initial_atoms -= 1
