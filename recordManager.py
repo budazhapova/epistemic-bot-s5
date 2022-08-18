@@ -1,6 +1,7 @@
 from model import Model
 from formulaBuilder import generate_formula, render_branch
 import json
+import csv
 from pathlib import Path
 from anytree.exporter import DictExporter 
 from anytree.importer import DictImporter
@@ -33,23 +34,20 @@ from stringConverter import *
 # if file doesn't yet exist, nothing happens
 def retrieve_formulas(filename):
     data_list = []
-    importer = DictImporter()
+    # importer = DictImporter()
     path = Path(f"{filename}.json")       # files separated  by number of connectives
     # check is file exists, then read data from it (to data_list) and print retrieved formulas
     if path.is_file():
         with open(f"{filename}.json", "r") as test_file:
             data_list = json.loads(test_file.read())
-            print("loaded data type: ", type(data_list))
-            print("1st element type: ", type(data_list[0]))
+            # print("loaded data type: ", type(data_list))
+            # print("1st element type: ", type(data_list[0]))
             # converts data from json to tree and prints it
             # for elem in data_list:
             #     root = importer.import_(elem)
             #     render_branch(root)
             #     print(translate_formula(root), end="\n\n")
                 # print(elem)
-            # for line in test_file:
-            #     jobj = json.loads(line)
-            #     data_list.append(jobj)
             if not data_list:
                 print("NO DATA RETRIEVED")
     return data_list
@@ -62,7 +60,7 @@ def json_to_tree(json_obj_formula):
     print(translate_formula(root), end="\n\n")
     return root
 
-#TODO: WRITING OTHER RESULTS
+#TODO: WRITING OTHER RESULTS: time, memory, length, and depth
 # print newly generated formula and append it to data_list
 # for r in roots:
 #     render_branch(r)
@@ -79,6 +77,16 @@ def write_formulas(filename, new_formula, data_list):
         jobj = json.dumps(data_list)
         # print(type(jobj))
         test_file.write(jobj)
-        # for dict in data_list:
-        #     json.dump(dict, test_file)
-        #     test_file.write("\n")
+
+# record data for analysis into a csv file
+def record_data_to_csv(filename, new_row):
+    path = Path(f"{filename}.csv")
+    # if file doesn't exist, write header before enterine new row of data
+    file_exists = path.is_file()
+    with open(f"{filename}.csv", "a", newline="") as data_file:
+        header = ["length", "depth", "tautology", "CPU time (sec)", "peak memory (bytes)"]
+        writer = csv.writer(data_file)
+        # if file had not existed before, first write the header on top
+        if not file_exists:
+            writer.writerow(header)
+        writer.writerow(new_row)

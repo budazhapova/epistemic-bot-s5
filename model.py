@@ -17,6 +17,10 @@ class Model:
         self.sidebar = []
         self.num_agents = num_agents
         self.node_total = 0
+        self.model_depth = 0
+        self.repeated_nodes = {}
+        # tracks if the same M/neg-K operator is resolved multiple times. If the same node ID is
+        # triggered 3 times, branch is declared open and the formula - a non-tautology
 
     # TODO: remove if proves unneeded
     # start with letter 'a' and add new atoms alphabetically as needed
@@ -67,10 +71,19 @@ class Model:
         # otherwise, search within existing sets
         else:
             for set in self.agents[agent]:
-                if state1 in set or state2 in set:
+                if (state1 in set) or (state2 in set):
                     set.update({state1, state2})
+                    print(f"agent {agent} relation updated with states {state1} and {state2}")
             return
     
+    # find all top (root) nodes in a given tree/sidebar and return a list of them
+    def find_roots(self, formula_tree):
+        all_roots = []
+        for elem in formula_tree:
+            if elem.is_root:
+                all_roots.append(elem)
+        return all_roots
+
     # sever parent-child association between nodes
     def detach_parent(self, oper_node):
         for child in oper_node.children:
@@ -102,7 +115,6 @@ class Model:
         for child in oper.children:
             child.state = new_state
 
-    # FIXME: should I put the state-assigning back here?
     # remove epistemic operator nodes from tree
     def remove_epist_op(self, epist_op, formula_tree):
         for child in epist_op.children:
@@ -112,6 +124,22 @@ class Model:
                 child.parent = None
         formula_tree.remove(epist_op)
     
+    # checks whether this epistemic node has been resolved before.
+    # otherwise, return False. update the count of resolutions regardless
+    def check_repetition(self, node_id):
+        if not self.repeated_nodes:
+            self.repeated_nodes.update({node_id: 1})
+            return False
+        else:
+            if node_id in self.repeated_nodes:
+                self.repeated_nodes[node_id] += 1
+                print(f"node {node_id} invoked {self.repeated_nodes[node_id]} times")
+                return self.repeated_nodes[node_id]
+            # if node not in the dictionary, record it
+            else:
+                self.repeated_nodes.update({node_id: 1})
+                return False
+
     # copies a branch of formula node by node and return the resulting list
     def replicate_branch(self, root):
         new_branch = []
@@ -157,7 +185,10 @@ class Model:
 
     
     # returns an exact copy of the current model
-    def copy_model(self, roots_main, roots_sidebar):
+    # references to roots need to be passed as arguments because model class can't access the 'find roots' method
+    def copy_model(self):
+        roots_main = self.find_roots(self.formula_tree)
+        roots_sidebar = self.find_roots(self.sidebar)
         new_model = Model(len(self.atoms), len(self.agents), len(self.states))
         # copy all contents of the original model; atoms initialized by default
         new_model.states = deepcopy(self.states)
@@ -181,6 +212,32 @@ class Model:
         else:
             print(f"copied model consists of: {len(new_model.formula_tree)} tree nodes and {len(new_model.states)} states")
         return new_model
+    
+    # traverse the tree up to the root and return depth of this branch
+    def calculate_branch_depth(self, node, count):
+        # atoms, agents, and negations have depth of 0;
+        # other connectives and epistemic operators have depth of 1
+        if node.type == "operator" and node.name not in ["NEG", "DOUBLE_NEG"]:
+            count += 1
+        if node.is_root:
+            # print(f"Branch depth {count}!")
+            return count
+        else:
+            new_count = self.calculate_branch_depth(node.parent, count)
+            return new_count
+
+    # calculate model depth of this formula
+    def estimate_depth(self, root):
+        all_end_nodes = root.leaves
+        max_depth = 0
+        # calculate depth for all branches from leaf to root
+        for leaf in all_end_nodes:
+            leaf_depth = self.calculate_branch_depth(leaf, 0)
+            if not leaf_depth:
+                print("BRANCH CALCULATION RETURED NONE")
+            if leaf_depth > max_depth:
+                max_depth = leaf_depth
+        self.model_depth = max_depth
 
 
     def print_atoms(self):
@@ -190,13 +247,3 @@ class Model:
     def print_states(self):
         for state in self.states:
             print(f"state {self.states.index(state)}: {state}")
-
-
-
-# model = Model(2, 3, 2)
-# for x in range(5):
-#    model.add_atom()
-# model.initialize_state()
-# model.print_atoms()
-# model.print_states()
-# print("end model file output")

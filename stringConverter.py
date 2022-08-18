@@ -39,13 +39,13 @@ def convert(root_node):
     #     stroutput.append('\xac')
 
     if "AND" in root_node.name:
-        operator = '&&'
+        operator = ' && '
     elif "OR" in root_node.name:
-        operator = '||'
+        operator = ' || '
     elif root_node.name == "IMP" or root_node.name == "NEG_IMP":
-        operator = '\u2192'
+        operator = ' \u2192 '
     elif "BI_IMP" in root_node.name:
-        operator = '\u2194'
+        operator = ' \u2194 '
     elif "K" in root_node.name or "M" in root_node.name:
         left_part = root_node.children[0].name
         if "K" in root_node.name:
@@ -59,7 +59,8 @@ def convert(root_node):
             left_part = '\u2081'
         elif left_part == 2:
             left_part = '\u2082'
-        # TODO: rework conversion for epistemic operators
+        elif left_part == 3:
+            left_part = '\u2083'
     if not operator == "K" and not operator == "M":
         left_part = convert(root_node.children[0])
     if operator:
@@ -86,6 +87,7 @@ def convert(root_node):
 
 def translate_formula(root_node):
     final_formula = convert(root_node)
-    final_formula = ' '.join(final_formula)
+    final_formula = ''.join(final_formula)
+    # TODO: remove some spaces between brackets, epistemic operators, negations in front of atom
     
     return final_formula

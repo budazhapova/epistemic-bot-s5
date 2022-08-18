@@ -83,14 +83,6 @@ def make_bin_con(formula_tree, connective, left, right, new_id):
     formula_tree.append(Node(connective, children=[left, right], type="operator", state=None, priority=connectives[connective], id=new_id))
 
 
-# find all top (root) nodes and return a list of them
-def find_roots(formula_tree):
-    all_roots = []
-    for elem in formula_tree:
-        if elem.is_root:
-            all_roots.append(elem)
-    return all_roots
-
 
 # choose a random operator/connective from a given priority tier.
 # binary connectives only is the default mode (i.e., if called with no argument).
@@ -113,12 +105,7 @@ def rnd_op_choice(pr_tier=choice([2,5])):
 # construct a new formula node with randomly chosen op/con
 def build_rnd_subformula(world, chosen):
     print("oper/conn choice: ", chosen)
-    # if formula is empty or 50/50 chance to create new sub-branch
-    # AND there's not too few operations left
-    # TODO: do I even need random atom generation?
-    # if (not formula_tree or (randint(0,9) < 3)):
-    #     write_atom(formula_tree, choice(num_atoms))          # TODO: replace with reference to model later
-    all_roots = find_roots(world.formula_tree)
+    all_roots = world.find_roots(world.formula_tree)
     subformula = choice(all_roots)
     # if the chosen op/conn is negation
     if connectives[chosen] == 1:
@@ -130,11 +117,8 @@ def build_rnd_subformula(world, chosen):
         make_epist(world.formula_tree, chosen, new_agent, subformula, world.node_total+1)
         world.node_total += 1
     else:
-        # otherwise, it's a binary connective
-        # write another atom if there's only one root available
-        if len(all_roots) < 2:
-            new_atom = write_atom(world, choice(world.atoms))
-            all_roots.append(new_atom)
+        # otherwise, it's a binary connective.
+        # choose two random branches to link
         two_branches = sample(all_roots, k=2)
         make_bin_con(world.formula_tree, chosen, two_branches[0], two_branches[1], world.node_total+1)
         world.node_total += 1
@@ -147,50 +131,60 @@ def render_branch(element):
 
 # TODO: implicit/distributed knowledge operator I?
 
-# generates a formula of 'countdown' amount of operators.
-# arg 'permitted' denotes the maximum priority of allowed operators
-# FIXME: remove the limit on op choice after testing!
+# generates a formula of 'countdown' length.
+# every atom and operator (except for agents) adds length of 1.
 def generate_formula(world, countdown):
     # list formula_tree will store the nodes containing elements (atoms, agents, operators, connectives)
     # of the formula in tree form
     # start by generating random atoms
-    initial_atoms = countdown * 2/3
+    if countdown < 5:
+        initial_atoms = countdown / 2
+    else:
+        initial_atoms = countdown / 3
     while initial_atoms > 0:
         write_atom(world, choice(world.atoms))
         initial_atoms -= 1
-    # count down the max number of operators
+        countdown -= 1
+    # count down the remaining formula length
     while countdown > 0:
         print(countdown, " operations left")
-        current_roots = find_roots(world.formula_tree)
+        current_roots = world.find_roots(world.formula_tree)
         print(len(current_roots), " branches in existence")
-        # if there are more unconnected formula sub-branches
-        # than there are op/conns to generate,
-        # restrict random choice to only binary conns
-        if len(current_roots) >= countdown:
-            selected = rnd_op_choice()      # default argument: 2 or 5
+        # if there's only one root, choose only unary connectives
+        if len(current_roots) == 1:
+            # if single operator left, choose one
+            if countdown == 1:
+                selected = choice(["NEG", "K", "M"])
+            # otherwise, can use negated operators as well
+            else:
+                selected = choice(["NEG", "K", "NEG_K", "M", "NEG_M"])
+        # if there are more branches than remaining connectives,
+        # restrict random choice to only (non-negated) binary connectives
+        elif len(current_roots) > countdown:
+            selected = choice(["AND", "OR", "IMP", "BI_IMP"])
         # otherwise, choose from all available
         else:
             # FIXME: removed the limited operator selection, test working
             # selected = rnd_op_choice(choice([1,2,5]))
             selected = rnd_op_choice(randint(1,5))
-        # ensure we don't end up with one extra operator in the last round.
-        # if selected is 'double neg' or 'not-smth', try again
-        while countdown == 1 and "_" in selected:
-            if selected == "BI_IMP": break
-            # if branches need uniting
-            if len(current_roots) > 1:
-                # only non-negated binary connectives permitted
-                selected = choice(["AND", "OR", "IMP", "BI_IMP"])
-            # if no unifying necessary
-            else:
-                selected = rnd_op_choice(randint(1,5))
+        # ensure we don't end up with too many branches to draw to a single root.
+        # if selected is 'double neg' or 'not-smth', choose from
+        # while countdown <= len(current_roots) and "_" in selected:
+        #     if selected == "BI_IMP": break
+        #     # if branches need uniting
+        #     if len(current_roots) > 1:
+        #         # only non-negated binary connectives permitted
+        #         selected = choice(["AND", "OR", "IMP", "BI_IMP"])
+        #     # if no unifying necessary
+        #     else:
+        #         selected = rnd_op_choice(randint(1,5))
         build_rnd_subformula(world, selected)
-        # if chosen operator actually contains 2 op/conns, count them properly
+        # if chosen operator contains negation, adjust count
         if "_" in selected and selected != "BI_IMP":
             countdown -= 2
         else:
             countdown -= 1
-    all_branches = find_roots(world.formula_tree)
+    all_branches = world.find_roots(world.formula_tree)
     if len(all_branches) > 1:
         print("SPLIT TREE!")
     # print formula tree for checking

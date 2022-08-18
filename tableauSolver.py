@@ -14,7 +14,7 @@ def trigger_sidebar(agent, old_state, new_state, world):
     if not rel_set:
         sys.exit("TRIGGER ERROR. no relations found")
     # first, find available roots in the sidebar
-    epist_nodes = find_roots(world.sidebar)
+    epist_nodes = world.find_roots(world.sidebar)
     for n in epist_nodes:
         # if there's a box-like operator with the same agent in the same pool of states,
         #   solve it again for new state
@@ -209,6 +209,12 @@ def repeat_solve_K_or_neg_M(oper, new_state_id, world):
 def solve_M_or_neg_K(oper, world):
     home_state_id = oper.state
     agent = oper.children[0].name
+    # first, check whether this diamond-like node has been resolved before on this branch.
+    # if this is the fourth pass of this node, judge the branch infinite and quit solving
+    repetitions = world.check_repetition(oper.id)
+    if repetitions > 3:
+        print("INFINITE BRANCH DETECTED")
+        return False
     # create new state in model
     world.add_state()
     new_state_id = len(world.states) - 1
@@ -245,10 +251,7 @@ def solve_branching(oper, world):
     right_branch = world.replicate_branch(oper.children[1])
     world.wipe_branch(world.formula_tree, oper)
     # create copy of the current model
-    # check for roots in old model
-    top_nodes = find_roots(world.formula_tree)
-    top_nodes_sidebar = find_roots(world.sidebar)
-    world_prime = world.copy_model(top_nodes, top_nodes_sidebar)
+    world_prime = world.copy_model()
         # outcome depends on rule used:
     # not-AND => not-A, not-B
     if rule == "NEG_AND":
@@ -290,18 +293,20 @@ def solve_branching(oper, world):
     new_length = len(world_prime.formula_tree)
     print(f"model copy extended from {old_formula_len} nodes to {new_length} nodes")
     print("model copy contains after attaching:")
-    roots_prime = find_roots(world_prime.formula_tree)
+    roots_prime = world_prime.find_roots(world_prime.formula_tree)
     # printout for world_prime's formula tree
     for r in roots_prime:
         render_branch(r)
     world.formula_tree.extend(right_branch)
     # check for roots in old model
-    top_nodes = find_roots(world.formula_tree)
+    top_nodes = world.find_roots(world.formula_tree)
     if len(top_nodes) < 1:
         print(f"NO ROOTS FOUND while resolving {rule}")
     # try to solve left branch in world_prime first
     while world_prime.formula_tree:
-        solver_loop(world_prime)
+        branch_status = solver_loop(world_prime)
+        if branch_status == False:
+            return False
     # FIXME: check whether wrapper list for models is necessary?
 
 
@@ -311,23 +316,25 @@ def priority_sort(el):
 
 # general action choice loop
 def solver_loop(world):
-    resolvables = find_roots(world.formula_tree)
+    resolvables = world.find_roots(world.formula_tree)
     print(f"\n new solver loop: {len(world.formula_tree)} nodes available, of them {len(resolvables)} roots")
-    print("nodes in the list:")
-    for node in world.formula_tree:
-            print(f"{node.name}[{node.id}]")
+    # print("nodes in the list:")
+    # for node in world.formula_tree:
+    #         print(f"{node.name}[{node.id}]")
     resolvables.sort(key=lambda x: x.priority)
     print("\ncurrent available roots in priority order:")
     for n in resolvables:
         render_branch(n)
-        print(translate_formula(n))
+        print(translate_formula(n), end="\n\n")
     if world.sidebar:
-        sidebar_roots = find_roots(world.sidebar)
+        sidebar_roots = world.find_roots(world.sidebar)
         print("sidebar:")
         for s in sidebar_roots:
             render_branch(s)
+            print(translate_formula(s), end="\n\n")
     oper_name = resolvables[0].name
     result = 0
+    branch_status = None
     print("resolving ", oper_name)
     # if highest priority root is a lone atomic predicate
     if resolvables[0].type == "atom":
@@ -346,9 +353,9 @@ def solver_loop(world):
     elif oper_name == "K" or oper_name == "NEG_M":
         solve_initial_K_neg_M(resolvables[0], world)
     elif oper_name == "M" or oper_name == "NEG_K":
-        solve_M_or_neg_K(resolvables[0], world)
+        branch_status = solve_M_or_neg_K(resolvables[0], world)
     elif resolvables[0].priority == 5:
-        solve_branching(resolvables[0], world)
+        branch_status = solve_branching(resolvables[0], world)
     else:
         sys.exit("UNIMPLEMENTED OPERATOR")
     
@@ -358,59 +365,77 @@ def solver_loop(world):
         world.formula_tree.clear()
         world.sidebar.clear()
         del world
-        return
+        return None
     print("current model state:")
     world.print_states()
     
     # if branch is open and complete (no operators left, no contradiction)
-    if not world.formula_tree:
+    if not world.formula_tree or branch_status == False:
         print("OPEN AND COMPLETE BRANCH => NOT A TAUTOLOGY")
-        sys.exit()
+        return False
 
 
 # TODO: operation for erasing branch with return -99
 # TODO: duplicate for branching formulas
 
 
-# general loop (for now):
-# make up a formula
-#formula_tree = generate_formula(5)          # number subject to change
-# for x in range(10):
-#     formula_tree.extend(generate_formula(5))
-# loop until tableau complete or a branch closes
-# while True:
-
 # list formula_tree stores the formula in tree-node form
 # sidebar is where we put formulas that might be expanded again later
 # if a new accessibility relation is discovered
-main_world = Model(3, 2)                     # TODO: automate
-# FIXME: is this necessary if the branching happens in a method??
-# this list holds all the models generated in the course of tableau solving
-# all_worlds = []
-# all_worlds.append(main_world)
 
-WORKMODE = "generate"
+def tableau_solver(main_world):
+    # records whether the formula is a tautology
+    t_status = None
+    roots = main_world.find_roots(main_world.formula_tree)
+    if len(roots) > 1:
+        sys.exit("ERROR more than one top connective")
+    # negate first connective for the tableau
+    make_neg(main_world.formula_tree, roots[0], main_world.node_total+1)
+    main_world.node_total += 1
+    # set state 0 for the top connective
+    roots = main_world.find_roots(main_world.formula_tree)
+    for root in roots:
+        root.state = 0
+
+    # loop keeps running until either formula is proven false or it runs out of branches to try
+    while t_status != False and main_world.formula_tree:
+        t_status = solver_loop(main_world)
+        if t_status == False:
+            print("END OF PROOF")
+            return t_status
+    print("\nSOLVING COMPLETE \nend tableau solver output")
+    # if formula has not been proven NOT a tautology, declare it a tautology
+    if not t_status == False:
+        t_status = True
+        return t_status
+
+
+# main_world = Model(1, 1)
+
+
+# WORKMODE = "generate"
 # WORKMODE = "load"
 
-# generate formula of given length and max operator priority
-if WORKMODE == "generate":
-    generate_formula(main_world, 10)
-elif WORKMODE == "load":
-    main_world.formula_tree = load_preset(5)
-    main_world.node_total = len(main_world.formula_tree)
-# find root nodes (should only be one!)
-roots = find_roots(main_world.formula_tree)
-if len(roots) > 1:
-    sys.exit("ERROR more than one top connective")
-# negate first connective for the tableau
-make_neg(main_world.formula_tree, roots[0], main_world.node_total+1)
-main_world.node_total += 1
-# set state 0 for the top connective
-roots = find_roots(main_world.formula_tree)
-for root in roots:
-    root.state = 0
 
-# TODO: consider an outer loop that accounts for branching?
-while main_world.formula_tree:
-    solver_loop(main_world)
-print("\nBRANCH COMPLETE \nend tableau solver output")
+# # generate formula of given length and max operator priority
+# if WORKMODE == "generate":
+#     generate_formula(main_world, 1)
+# elif WORKMODE == "load":
+#     main_world.formula_tree = load_preset(5)
+#     main_world.node_total = len(main_world.formula_tree)
+# # find root nodes (should only be one!)
+# roots = find_roots(main_world.formula_tree)
+# if len(roots) > 1:
+#     sys.exit("ERROR more than one top connective")
+# # negate first connective for the tableau
+# make_neg(main_world.formula_tree, roots[0], main_world.node_total+1)
+# main_world.node_total += 1
+# # set state 0 for the top connective
+# roots = find_roots(main_world.formula_tree)
+# for root in roots:
+#     root.state = 0
+
+# # TODO: consider an outer loop that accounts for branching?
+# while main_world.formula_tree:
+#     solver_loop(main_world)
+# print("\nBRANCH COMPLETE \nend tableau solver output")
