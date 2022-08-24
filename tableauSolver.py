@@ -212,6 +212,7 @@ def solve_M_or_neg_K(oper, world):
     # first, check whether this diamond-like node has been resolved before on this branch.
     # if this is the fourth pass of this node, judge the branch infinite and quit solving
     repetitions = world.check_repetition(oper.id)
+    print(f"operator {oper.name} is being resolved {repetitions} times")
     if repetitions > 3:
         print("INFINITE BRANCH DETECTED")
         return False
@@ -388,7 +389,8 @@ def tableau_solver(main_world):
     t_status = None
     roots = main_world.find_roots(main_world.formula_tree)
     if len(roots) > 1:
-        sys.exit("ERROR more than one top connective")
+        print("ERROR more than one top connective")
+        return -1
     # negate first connective for the tableau
     make_neg(main_world.formula_tree, roots[0], main_world.node_total+1)
     main_world.node_total += 1

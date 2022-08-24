@@ -32,7 +32,7 @@ def convert(root_node):
         if root_node.priority in [2, 5]:
             stroutput.append(0)
             stroutput.append('(')
-    elif "NEG_" in root_node.name:
+    elif root_node.name in ["NEG_AND", "NEG_OR", "NEG_IMP", "NEG_BI_IMP"]:
         stroutput.append(0)
         stroutput.append('(')
     # elif root_node.name == "NEG":

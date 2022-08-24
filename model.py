@@ -74,6 +74,11 @@ class Model:
                 if (state1 in set) or (state2 in set):
                     set.update({state1, state2})
                     print(f"agent {agent} relation updated with states {state1} and {state2}")
+                    return
+            # if relations for this agent exist, but don't include either of these states, make new set
+            new_set = {state1, state2}
+            self.agents[agent].append(new_set)
+            print(f"agent {agent} relation created set with states {state1} and {state2}")
             return
     
     # find all top (root) nodes in a given tree/sidebar and return a list of them
@@ -125,20 +130,23 @@ class Model:
         formula_tree.remove(epist_op)
     
     # checks whether this epistemic node has been resolved before.
-    # otherwise, return False. update the count of resolutions regardless
+    # if not, return 1 times resolved. update the count of resolutions regardless
     def check_repetition(self, node_id):
-        if not self.repeated_nodes:
-            self.repeated_nodes.update({node_id: 1})
-            return False
-        else:
-            if node_id in self.repeated_nodes:
-                self.repeated_nodes[node_id] += 1
-                print(f"node {node_id} invoked {self.repeated_nodes[node_id]} times")
-                return self.repeated_nodes[node_id]
-            # if node not in the dictionary, record it
-            else:
-                self.repeated_nodes.update({node_id: 1})
-                return False
+        repetitions = self.repeated_nodes.setdefault(node_id, 0) + 1
+        self.repeated_nodes[node_id] = repetitions
+        return self.repeated_nodes.get(node_id)
+        # if not self.repeated_nodes:
+        #     self.repeated_nodes[node_id] = 1
+        #     return False
+        # else:
+        #     if node_id in self.repeated_nodes:
+        #         self.repeated_nodes[node_id] = self.repeated_nodes[node_id] + 1
+        #         print(f"node {node_id} invoked {self.repeated_nodes[node_id]} times")
+        #         return self.repeated_nodes.get(node_id)
+        #     # if node not in the dictionary, record it
+        #     else:
+        #         self.repeated_nodes[node_id] = 1
+        #         return 1
 
     # copies a branch of formula node by node and return the resulting list
     def replicate_branch(self, root):
@@ -194,6 +202,8 @@ class Model:
         new_model.states = deepcopy(self.states)
         new_model.agents = deepcopy(self.agents)
         new_model.node_total = deepcopy(self.node_total)
+        new_model.repeated_nodes = self.repeated_nodes.copy()
+        new_model.model_depth = self.model_depth
         # new_model = deepcopy(self)
         if len(roots_main) < 1:
             print("NO ROOTS PASSED DURING COPYING of pre-attach model")

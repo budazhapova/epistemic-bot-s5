@@ -140,7 +140,8 @@ def generate_formula(world, countdown):
     if countdown < 5:
         initial_atoms = countdown / 2
     else:
-        initial_atoms = countdown / 3
+        # variable number of atoms involved: between 1/4 and 2/3 of total formula length
+        initial_atoms = randint(int(countdown/4), int(countdown*2/3))
     while initial_atoms > 0:
         write_atom(world, choice(world.atoms))
         initial_atoms -= 1
