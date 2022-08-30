@@ -47,6 +47,7 @@ def make_model(formula_length, WORKMODE):
 # and generate it. returns a Model-class object (from here on: world)
 # outcomes: 0 - formula already exists
 #           1 - formula is new and was evaluated
+#           2 - formula is new and was a tautology
 #           -1 - formula was generated improperly and can't be evaluated
 def main_function(WORKMODE, formula_length=randint(3, 200)):
     # formula_length = randint(3, 15)

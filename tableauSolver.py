@@ -219,6 +219,7 @@ def solve_M_or_neg_K(oper, world):
     # create new state in model
     world.add_state()
     new_state_id = len(world.states) - 1
+    print("opening state ", new_state_id)
     # add new accessibility relation to the model
     world.add_relation(home_state_id, new_state_id, agent)
     current_set = world.check_relations(home_state_id, agent)
