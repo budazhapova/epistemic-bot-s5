@@ -39,13 +39,13 @@ def convert(root_node):
     #     stroutput.append('\xac')
 
     if "AND" in root_node.name:
-        operator = ' && '
+        operator = ' \u2227 '
     elif "OR" in root_node.name:
-        operator = ' || '
+        operator = ' u2228 '
     elif root_node.name == "IMP" or root_node.name == "NEG_IMP":
         operator = ' \u2192 '
     elif "BI_IMP" in root_node.name:
-        operator = ' \u2194 '
+        operator = ' \u27f7 '
     elif "K" in root_node.name or "M" in root_node.name:
         left_part = root_node.children[0].name
         if "K" in root_node.name:

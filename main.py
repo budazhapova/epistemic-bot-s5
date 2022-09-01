@@ -47,8 +47,9 @@ def make_model(formula_length, WORKMODE):
 # and generate it. returns a Model-class object (from here on: world)
 # outcomes: 0 - formula already exists
 #           1 - formula is new and was evaluated
+#           2 - formula is new and a tautology
 #           -1 - formula was generated improperly and can't be evaluated
-def main_function(WORKMODE, formula_length=randint(3, 200)):
+def main_function(WORKMODE, formula_length=randint(3, 150)):
     # formula_length = randint(3, 15)
     # FIXME: put call in this file, enable randomness back after data gathering
     if WORKMODE == "load":

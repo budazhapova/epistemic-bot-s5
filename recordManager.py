@@ -70,9 +70,10 @@ def json_to_tree(json_obj_formula):
 
 # overwrite the old file with new formula appended to the end
 def write_formulas(filename, new_formula, data_list):
-    exporter = DictExporter()
-    new_data = exporter.export(new_formula)
-    data_list.append(new_data)
+    if new_formula:
+        exporter = DictExporter()
+        new_data = exporter.export(new_formula)
+        data_list.append(new_data)
     with open(f"{filename}.json", "w") as test_file:
         jobj = json.dumps(data_list)
         # print(type(jobj))
