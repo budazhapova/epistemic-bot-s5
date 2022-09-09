@@ -59,12 +59,3 @@ def compare_formulas(old_f, new_f):
                 return True
     else:
         return False
-
-main_world = Model(1, 1)
-main_world.formula_tree = load_preset(8)
-main_world.node_total = len(main_world.formula_tree)
-roots = main_world.find_roots(main_world.formula_tree)
-top_node = roots[0]
-
-match = compare_formulas(top_node, top_node)
-print("Match: ", match)

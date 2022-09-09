@@ -66,19 +66,19 @@ class Model:
         if not isinstance(self.agents[agent], list):
             self.agents[agent] = []
             self.agents[agent].append({state1, state2})
-            print(f"agent {agent} relation recorded: {self.agents[agent]}")
+            # print(f"agent {agent} relation recorded: {self.agents[agent]}")
             return
         # otherwise, search within existing sets
         else:
             for set in self.agents[agent]:
                 if (state1 in set) or (state2 in set):
                     set.update({state1, state2})
-                    print(f"agent {agent} relation updated with states {state1} and {state2}")
+                    # print(f"agent {agent} relation updated with states {state1} and {state2}")
                     return
             # if relations for this agent exist, but don't include either of these states, make new set
             new_set = {state1, state2}
             self.agents[agent].append(new_set)
-            print(f"agent {agent} relation created set with states {state1} and {state2}")
+            # print(f"agent {agent} relation created set with states {state1} and {state2}")
             return
     
     # find all top (root) nodes in a given tree/sidebar and return a list of them
@@ -93,10 +93,10 @@ class Model:
     def detach_parent(self, oper_node):
         for child in oper_node.children:
             child.parent = None
-            if child.is_root:
-                print(f"parent {oper_node.name} successfully detached from child {child.name}")
-            else:
-                print(f"FAILURE DETACHING FROM for node {child.name}")
+            # if child.is_root:
+            #     print(f"parent {oper_node.name} successfully detached from child {child.name}")
+            # else:
+            #     print(f"FAILURE DETACHING FROM for node {child.name}")
 
     # remove a node from the middle of branch and knit the edges
     def remove_branch_node(self, parent_node, middle_node, formula_tree):
@@ -166,10 +166,10 @@ class Model:
             # if root-node has parents, detach it
             # if node == root and not root.is_root:
             #     new_branch[-1].parent = None
-        if len(new_branch) < 1:
-            print("copying branch failed!")
-        else:
-            print(f"branch copied with {len(new_branch)} nodes")
+        # if len(new_branch) < 1:
+        #     print("copying branch failed!")
+        # else:
+        #     print(f"branch copied with {len(new_branch)} nodes")
         return new_branch
 
     # removes an entire branch/subformula from the formula_tree
@@ -177,17 +177,17 @@ class Model:
         # if node is not terminal
         if not current_node.is_leaf:
             # recursively traverse down to the leaves
-            print(f"traversing node {current_node.name}")
+            # print(f"traversing node {current_node.name}")
             for child in current_node.children:
                 self.wipe_branch(tree, child)
         # wipe current nodes from leaves up
         # current_node.parent = None
-        print(f"wiping node {current_node.name}")
+        # print(f"wiping node {current_node.name}")
         if current_node in tree:
-            print(f"{current_node.name} wiped from list")
+            # print(f"{current_node.name} wiped from list")
             tree.remove(current_node)
         else:
-            print(f"{current_node.name} not found in tree/list")
+            # print(f"{current_node.name} not found in tree/list")
             del current_node
         return
 
@@ -204,23 +204,20 @@ class Model:
         new_model.node_total = deepcopy(self.node_total)
         new_model.repeated_nodes = self.repeated_nodes.copy()
         new_model.model_depth = self.model_depth
-        # new_model = deepcopy(self)
-        if len(roots_main) < 1:
-            print("NO ROOTS PASSED DURING COPYING of pre-attach model")
         for n in roots_main:
             new_branch = self.replicate_branch(n)
             new_model.formula_tree.extend(new_branch)
-            print(f"new model copy has {len(new_model.formula_tree)} nodes")
+            # print(f"new model copy has {len(new_model.formula_tree)} nodes")
         # new_model.formula_tree = deepcopy(self.formula_tree)
         for s in roots_sidebar:
             branch_copy = self.replicate_branch(s)
             new_model.sidebar.extend(branch_copy)
         # new_model.sidebar = deepcopy(self.sidebar)
         # new_model.states = deepcopy(self.states)
-        if not new_model:
-            print("model object copying failed!")
-        else:
-            print(f"copied model consists of: {len(new_model.formula_tree)} tree nodes and {len(new_model.states)} states")
+        # if not new_model:
+        #     print("model object copying failed!")
+        # else:
+        #     print(f"copied model consists of: {len(new_model.formula_tree)} tree nodes and {len(new_model.states)} states")
         return new_model
     
     # traverse the tree up to the root and return depth of this branch
@@ -243,8 +240,8 @@ class Model:
         # calculate depth for all branches from leaf to root
         for leaf in all_end_nodes:
             leaf_depth = self.calculate_branch_depth(leaf, 0)
-            if not leaf_depth:
-                print("BRANCH CALCULATION RETURED NONE")
+            # if not leaf_depth:
+            #     print("BRANCH CALCULATION RETURED NONE")
             if leaf_depth > max_depth:
                 max_depth = leaf_depth
         self.model_depth = max_depth

@@ -49,7 +49,7 @@ def make_model(formula_length, WORKMODE):
 #           1 - formula is new and was evaluated
 #           2 - formula is new and a tautology
 #           -1 - formula was generated improperly and can't be evaluated
-def main_function(WORKMODE, formula_length=randint(3, 150)):
+def main_function(WORKMODE, formula_length=randint(3, 120)):
     # formula_length = randint(3, 15)
     # FIXME: put call in this file, enable randomness back after data gathering
     if WORKMODE == "load":
@@ -67,15 +67,15 @@ def main_function(WORKMODE, formula_length=randint(3, 150)):
     data_list = retrieve_formulas(formula_length)
     # for every recorded formula, convert back to tree form and compare to the new formula
     if data_list:
-        print("COMPARING TO FILE")
+        # print("COMPARING TO FILE")
         for json_obj in data_list:
             old_formula = json_to_tree(json_obj)
             formula_match = compare_formulas(old_formula, new_root)
-            print(f"Exact match to new formula: {formula_match}")
+            # print(f"Exact match to new formula: {formula_match}")
             # if such formula has already been generated, abort
             if formula_match == True:
-                print(translate_formula(new_root))
-                print("\nFORMULA ALREADY EXISTS")
+                # print(translate_formula(new_root)[0])
+                # print("\nFORMULA ALREADY EXISTS")
                 return 0
                 # sys.exit("\nFORMULA ALREADY EXISTS")
 
@@ -96,7 +96,8 @@ def main_function(WORKMODE, formula_length=randint(3, 150)):
 
     # orig_roots = main_world.find_roots(main_world.formula_tree)
     print("\nTAUTOLOGY = ", tautology)
-    print(translate_formula(new_root))
+    line_formula, tweet_length = translate_formula(new_root)
+    print(line_formula)
     print(f"Tableau of length {formula_length} and depth {main_world.model_depth} solved in {solving_time} seconds (CPU time) and {peak_memory} bytes peak memory")
 
     # write generated formula to appropriate file
@@ -104,18 +105,20 @@ def main_function(WORKMODE, formula_length=randint(3, 150)):
     # if new formula was proven a tautology, record it in a separate file
     if tautology == True:
         tautology_list = retrieve_formulas("tautologies")
+        formula_match = False
         for obj in tautology_list:
             old_tautology = json_to_tree(obj)
             formula_match = compare_formulas(old_tautology, new_root)
             if formula_match == True:
                 break
-        if formula_match == False:
+        # if the new tautology is over the max Twitter post length, do not record it
+        if formula_match == False and tweet_length <= 280:
             write_formulas("tautologies", new_root, tautology_list)
 
     # ["length", "depth", "tautology", "CPU time (sec)", "memory (bytes)"]
     row = [formula_length, main_world.model_depth, tautology, solving_time, peak_memory]
     record_data_to_csv("testdata", row)
-    if tautology == True:
+    if tautology == True and tweet_length <= 280:
         return 2
     else:
         return 1
@@ -123,6 +126,3 @@ def main_function(WORKMODE, formula_length=randint(3, 150)):
 
 WORKMODE = "generate"
 # WORKMODE = "load"
-
-# FIXME: put randomness back to 150 max later
-# main_function("generate", randint(3,15))

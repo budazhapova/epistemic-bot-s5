@@ -21,10 +21,10 @@ for i in range(200):
             tautologies += 1
         new_formulas += 1
 
-print("\n\nFORMULAS FROM FILE\n")
+# print("\n\nFORMULAS FROM FILE\n")
 json_data = retrieve_formulas(formula_length)
 for obj in json_data:
     counter += 1
-    print(counter)
+    # print(counter)
     json_to_tree(obj)
-print(f"\nBATCH RESULTS:\nNEW FORMULAS GENERATED - {new_formulas}\nof which {tautologies} are tautologies\nDUPLICATES - {duplicates}\nDUDS - {duds}")
+# print(f"\nBATCH RESULTS:\nNEW FORMULAS GENERATED - {new_formulas}\nof which {tautologies} are tautologies\nDUPLICATES - {duplicates}\nDUDS - {duds}")

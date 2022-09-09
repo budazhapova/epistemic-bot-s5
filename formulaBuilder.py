@@ -89,7 +89,7 @@ def make_bin_con(formula_tree, connective, left, right, new_id):
 # compiles a list of all op/cons with a given chosen priority
 # and returns a random op/con from that list
 def rnd_op_choice(pr_tier=choice([2,5])):
-    print("priority tier: ", pr_tier)
+    # print("priority tier: ", pr_tier)
     # I exclude double negation because there are many ways to arrive at it already
     if pr_tier == 1:
         selected = "NEG"
@@ -104,7 +104,7 @@ def rnd_op_choice(pr_tier=choice([2,5])):
 
 # construct a new formula node with randomly chosen op/con
 def build_rnd_subformula(world, chosen):
-    print("oper/conn choice: ", chosen)
+    # print("oper/conn choice: ", chosen)
     all_roots = world.find_roots(world.formula_tree)
     subformula = choice(all_roots)
     # if the chosen op/conn is negation
@@ -148,9 +148,9 @@ def generate_formula(world, countdown):
         countdown -= 1
     # count down the remaining formula length
     while countdown > 0:
-        print(countdown, " operations left")
+        # print(countdown, " operations left")
         current_roots = world.find_roots(world.formula_tree)
-        print(len(current_roots), " branches in existence")
+        # print(len(current_roots), " branches in existence")
         # if there's only one root, choose only unary connectives
         if len(current_roots) == 1:
             # if single operator left, choose one
@@ -186,15 +186,15 @@ def generate_formula(world, countdown):
         else:
             countdown -= 1
     all_branches = world.find_roots(world.formula_tree)
-    if len(all_branches) > 1:
-        print("SPLIT TREE!")
+    # if len(all_branches) > 1:
+        # print("SPLIT TREE!")
     # print formula tree for checking
-    for elem in all_branches:
-        render_branch(elem)
-    print("end formula-builder output\n")
+    # for elem in all_branches:
+    #     render_branch(elem)
+    # print("end formula-builder output\n")
 
-    line_format = translate_formula(all_branches[0])
-    print(line_format)
+    # line_format = translate_formula(all_branches[0])[0]
+    # print(line_format)
     # return formula_tree
 
 # generate_formula(6)

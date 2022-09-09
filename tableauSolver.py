@@ -25,9 +25,9 @@ def trigger_sidebar(agent, old_state, new_state, world):
 # PRIORITY TIER 0
 # resolve an atom at the end of a branch
 def solve_atom(atom, world):
-    if atom.height != 0:
-        print("single atom at non-terminal node!\n function solve_atom")
-        sys.exit("ATOM ERROR")
+    # if atom.height != 0:
+    #     print("single atom at non-terminal node!\n function solve_atom")
+    #     sys.exit("ATOM ERROR")
     result = world.access_atom(atom.name, True, atom.state)
     if result == False:
         return -99
@@ -61,10 +61,10 @@ def solve_multi_neg(node, world):
 # resolve double negation
 def solve_double_neg(oper, world):
     # if formula branches after double negation node, abort
-    if len(oper.children) > 1:
-        print("more than one child of DOUBLE_NEG node!")
-        render_branch(oper)
-        sys.exit("DOUBLE NEG ERROR")
+    # if len(oper.children) > 1:
+    #     print("more than one child of DOUBLE_NEG node!")
+    #     # render_branch(oper)
+    #     sys.exit("DOUBLE NEG ERROR")
     world.inherit_state(oper)
     world.detach_parent(oper)
     world.formula_tree.remove(oper)
@@ -84,11 +84,10 @@ def solve_neg(oper, world):
     world.inherit_state(oper)
     # check atom's truth valuation in the model
     atom = oper.children[0]
-    # FIXME: remove if not needed
-    if atom not in world.formula_tree:
-        print(f"ERORR: atom {atom.name} not found in world.formula_tree\n full list:")
-        for node in world.formula_tree:
-            print(node.name)
+    # if atom not in world.formula_tree:
+        # print(f"ERORR: atom {atom.name} not found in world.formula_tree\n full list:")
+        # for node in world.formula_tree:
+        #     print(node.name)
     result = world.access_atom(atom.name, False, atom.state)
     # if contradiction encountered, wipe the branch
     if result == False:
@@ -103,20 +102,20 @@ def solve_neg(oper, world):
 # resolve AND operators
 def solve_and(oper, world):
     # if AND operator is misapplied
-    if len(oper.children) != 2:
-        print("binary operator with wrong number of children!")
-        render_branch(oper)
-        sys.exit("AND ERROR")
+    # if len(oper.children) != 2:
+    #     print("binary operator with wrong number of children!")
+    #     render_branch(oper)
+    #     sys.exit("AND ERROR")
     world.inherit_state(oper)
     world.detach_parent(oper)
     world.formula_tree.remove(oper)
 
 # resolve NOT-OR operator
 def solve_neg_or(oper, world):
-    if len(oper.children) != 2:
-        print("binary operator with wrong number of children!")
-        render_branch(oper)
-        sys.exit("NEG-OR ERROR")
+    # if len(oper.children) != 2:
+    #     print("binary operator with wrong number of children!")
+    #     render_branch(oper)
+    #     sys.exit("NEG-OR ERROR")
     world.inherit_state(oper)
     # apply negation to both child-nodes, with neg-node inserted between oper and children
     for child in oper.children:
@@ -127,10 +126,10 @@ def solve_neg_or(oper, world):
 
 # resolve NOT-IMPLIES operator
 def solve_neg_imp(oper, world):
-    if len(oper.children) != 2:
-        print("binary operator with wrong number of children!")
-        render_branch(oper)
-        sys.exit("NEG-IMP ERROR")
+    # if len(oper.children) != 2:
+    #     print("binary operator with wrong number of children!")
+    #     render_branch(oper)
+    #     sys.exit("NEG-IMP ERROR")
     # 'a does not imply b' means 'a and not-b'
     right_child = oper.children[1]
     world.node_total += 1
@@ -169,7 +168,7 @@ def solve_initial_K_neg_M(oper, world):
     if not relations:
         world.add_relation(home_state, home_state, agent)
         relations = {home_state}
-    print(f"retrieved relations of state {home_state}: {relations}")
+    # print(f"retrieved relations of state {home_state}: {relations}")
     # first, put a copy of current subtree into sidebar
     sidebar_copy = world.replicate_branch(oper)
     world.sidebar.extend(sidebar_copy)
@@ -194,10 +193,9 @@ def repeat_solve_K_or_neg_M(oper, new_state_id, world):
     if oper.name == "NEG_M":
         negation = True
     agent = oper.children[0].name
-    print(f"invoking {oper.name} from the sidebar")
-    print(f"sidebar new relation: state {oper.state} to {new_state_id} for agent {agent}")
+    # print(f"invoking {oper.name} from the sidebar")
+    # print(f"sidebar new relation: state {oper.state} to {new_state_id} for agent {agent}")
     # copy subformula from sidebar to formula tree
-    # FIXME: check efficiency
     new_branch = world.replicate_branch(oper)
     world.formula_tree.extend(new_branch)
     local_root = new_branch[0]
@@ -212,9 +210,9 @@ def solve_M_or_neg_K(oper, world):
     # first, check whether this diamond-like node has been resolved before on this branch.
     # if this is the fourth pass of this node, judge the branch infinite and quit solving
     repetitions = world.check_repetition(oper.id)
-    print(f"operator {oper.name} is being resolved {repetitions} times")
+    # print(f"operator {oper.name} is being resolved {repetitions} times")
     if repetitions > 3:
-        print("INFINITE BRANCH DETECTED")
+        # print("INFINITE BRANCH DETECTED")
         return False
     # create new state in model
     world.add_state()
@@ -222,7 +220,7 @@ def solve_M_or_neg_K(oper, world):
     # add new accessibility relation to the model
     world.add_relation(home_state_id, new_state_id, agent)
     current_set = world.check_relations(home_state_id, agent)
-    print(f"agent {agent} relation sets: {current_set}")
+    # print(f"agent {agent} relation sets: {current_set}")
     # if resolving NEG-K, insert negation
     if oper.name == "NEG_K":
         right_child = oper.children[1]
@@ -289,20 +287,20 @@ def solve_branching(oper, world):
         left_branch.extend(temp_right)
         right_branch.extend(temp_left)
     # reinsert left branch into world-copy, right branch into original model object
-    old_formula_len = len(world_prime.formula_tree)
+    # old_formula_len = len(world_prime.formula_tree)
     world_prime.formula_tree.extend(left_branch)
-    new_length = len(world_prime.formula_tree)
-    print(f"model copy extended from {old_formula_len} nodes to {new_length} nodes")
-    print("model copy contains after attaching:")
-    roots_prime = world_prime.find_roots(world_prime.formula_tree)
+    # new_length = len(world_prime.formula_tree)
+    # print(f"model copy extended from {old_formula_len} nodes to {new_length} nodes")
+    # print("model copy contains after attaching:")
+    # roots_prime = world_prime.find_roots(world_prime.formula_tree)
     # printout for world_prime's formula tree
-    for r in roots_prime:
-        render_branch(r)
+    # for r in roots_prime:
+    #     render_branch(r)
     world.formula_tree.extend(right_branch)
     # check for roots in old model
     top_nodes = world.find_roots(world.formula_tree)
-    if len(top_nodes) < 1:
-        print(f"NO ROOTS FOUND while resolving {rule}")
+    # if len(top_nodes) < 1:
+    #     print(f"NO ROOTS FOUND while resolving {rule}")
     # try to solve left branch in world_prime first
     while world_prime.formula_tree:
         branch_status = solver_loop(world_prime)
@@ -318,25 +316,25 @@ def priority_sort(el):
 # general action choice loop
 def solver_loop(world):
     resolvables = world.find_roots(world.formula_tree)
-    print(f"\n new solver loop: {len(world.formula_tree)} nodes available, of them {len(resolvables)} roots")
+    # print(f"\n new solver loop: {len(world.formula_tree)} nodes available, of them {len(resolvables)} roots")
     # print("nodes in the list:")
     # for node in world.formula_tree:
     #         print(f"{node.name}[{node.id}]")
     resolvables.sort(key=lambda x: x.priority)
-    print("\ncurrent available roots in priority order:")
-    for n in resolvables:
-        render_branch(n)
-        print(translate_formula(n), end="\n\n")
-    if world.sidebar:
-        sidebar_roots = world.find_roots(world.sidebar)
-        print("sidebar:")
-        for s in sidebar_roots:
-            render_branch(s)
-            print(translate_formula(s), end="\n\n")
+    # print("\ncurrent available roots in priority order:")
+    # for n in resolvables:
+    #     render_branch(n)
+    #     print(translate_formula(n)[0], end="\n\n")
+    # if world.sidebar:
+    #     sidebar_roots = world.find_roots(world.sidebar)
+    #     print("sidebar:")
+    #     for s in sidebar_roots:
+    #         render_branch(s)
+    #         print(translate_formula(s)[0], end="\n\n")
     oper_name = resolvables[0].name
     result = 0
     branch_status = None
-    print("resolving ", oper_name)
+    # print("resolving ", oper_name)
     # if highest priority root is a lone atomic predicate
     if resolvables[0].type == "atom":
         result = solve_atom(resolvables[0], world)
@@ -360,19 +358,18 @@ def solver_loop(world):
     else:
         sys.exit("UNIMPLEMENTED OPERATOR")
     
-    # TODO: add reverting to other branch functionality
     if result == -99:
-        print("CONTRADICTION FOUND")
+        # print("CONTRADICTION FOUND")
         world.formula_tree.clear()
         world.sidebar.clear()
         del world
         return None
-    print("current model state:")
-    world.print_states()
+    # print("current model state:")
+    # world.print_states()
     
     # if branch is open and complete (no operators left, no contradiction)
     if not world.formula_tree or branch_status == False:
-        print("OPEN AND COMPLETE BRANCH => NOT A TAUTOLOGY")
+        # print("OPEN AND COMPLETE BRANCH => NOT A TAUTOLOGY")
         return False
 
 
@@ -389,7 +386,7 @@ def tableau_solver(main_world):
     t_status = None
     roots = main_world.find_roots(main_world.formula_tree)
     if len(roots) > 1:
-        print("ERROR more than one top connective")
+        # print("ERROR more than one top connective")
         return -1
     # negate first connective for the tableau
     make_neg(main_world.formula_tree, roots[0], main_world.node_total+1)
@@ -403,41 +400,16 @@ def tableau_solver(main_world):
     while t_status != False and main_world.formula_tree:
         t_status = solver_loop(main_world)
         if t_status == False:
-            print("END OF PROOF")
+            # print("END OF PROOF")
             return t_status
-    print("\nSOLVING COMPLETE \nend tableau solver output")
+    # print("\nSOLVING COMPLETE \nend tableau solver output")
     # if formula has not been proven NOT a tautology, declare it a tautology
     if not t_status == False:
         t_status = True
         return t_status
 
 
-# main_world = Model(1, 1)
 
 
 # WORKMODE = "generate"
 # WORKMODE = "load"
-
-
-# # generate formula of given length and max operator priority
-# if WORKMODE == "generate":
-#     generate_formula(main_world, 1)
-# elif WORKMODE == "load":
-#     main_world.formula_tree = load_preset(5)
-#     main_world.node_total = len(main_world.formula_tree)
-# # find root nodes (should only be one!)
-# roots = find_roots(main_world.formula_tree)
-# if len(roots) > 1:
-#     sys.exit("ERROR more than one top connective")
-# # negate first connective for the tableau
-# make_neg(main_world.formula_tree, roots[0], main_world.node_total+1)
-# main_world.node_total += 1
-# # set state 0 for the top connective
-# roots = find_roots(main_world.formula_tree)
-# for root in roots:
-#     root.state = 0
-
-# # TODO: consider an outer loop that accounts for branching?
-# while main_world.formula_tree:
-#     solver_loop(main_world)
-# print("\nBRANCH COMPLETE \nend tableau solver output")

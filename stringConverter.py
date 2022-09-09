@@ -10,6 +10,8 @@ symbol_codes = {
     2 : '\u2082'
 }
 
+double_symbols = " \u2227 \u2228 \u2192 \u27f7 \u2081 \u2082 \u2083"
+
 # recursively traverses the 
 def convert(root_node):
     stroutput = []
@@ -41,7 +43,7 @@ def convert(root_node):
     if "AND" in root_node.name:
         operator = ' \u2227 '
     elif "OR" in root_node.name:
-        operator = ' u2228 '
+        operator = ' \u2228 '
     elif root_node.name == "IMP" or root_node.name == "NEG_IMP":
         operator = ' \u2192 '
     elif "BI_IMP" in root_node.name:
@@ -86,8 +88,12 @@ def convert(root_node):
     return stroutput
 
 def translate_formula(root_node):
+    tweet_length = 0
     final_formula = convert(root_node)
+
+    # count the length of a future tweet with all \u200+ characters counting for two
+    tweet_length = sum(len(char)+1 if (char in double_symbols) else 1 for char in final_formula)
+
     final_formula = ''.join(final_formula)
-    # TODO: remove some spaces between brackets, epistemic operators, negations in front of atom
     
-    return final_formula
+    return final_formula, tweet_length

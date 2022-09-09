@@ -1,5 +1,5 @@
 from model import Model
-from formulaBuilder import generate_formula, render_branch
+from formulaBuilder import render_branch
 import json
 import csv
 from pathlib import Path
@@ -21,14 +21,6 @@ from stringConverter import *
 #     main_world = Model(2, 2)
 #     generate_formula(main_world, formula_length)
 
-# roots = main_world.find_roots(main_world.formula_tree)
-# if len(roots) > 1:
-#     print("ABORT. TOO MANY ROOTS")
-
-# data_list = []
-# exporter = DictExporter()
-# importer = DictImporter()
-# path = Path(f"{formula_length}.json")       # files separated  by number of connectives
 
 # this method reads previously recorded formulas from file as json objects.
 # if file doesn't yet exist, nothing happens
@@ -48,16 +40,16 @@ def retrieve_formulas(filename):
             #     render_branch(root)
             #     print(translate_formula(root), end="\n\n")
                 # print(elem)
-            if not data_list:
-                print("NO DATA RETRIEVED")
+            # if not data_list:
+            #     print("NO DATA RETRIEVED")
     return data_list
 
 # converts retrieved json object to anytree-type tree and prints
 def json_to_tree(json_obj_formula):
     importer = DictImporter()
     root = importer.import_(json_obj_formula)
-    render_branch(root)
-    print(translate_formula(root), end="\n\n")
+    # render_branch(root)
+    # print(translate_formula(root)[0], end="\n\n")
     return root
 
 #TODO: WRITING OTHER RESULTS: time, memory, length, and depth
