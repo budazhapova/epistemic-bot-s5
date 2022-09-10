@@ -1,5 +1,7 @@
 from anytree import Node
 
+# SUMMARY: this file contains hard-coded formulas used for bug testing
+
 # preset formulas:
 # 1 -- (not-a or not-b)
 

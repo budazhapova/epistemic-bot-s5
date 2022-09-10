@@ -7,7 +7,10 @@ from formulaMatcher import compare_formulas
 from random import randint
 import time
 import tracemalloc
-import sys      # TODO: remove when not needed
+
+# SUMMARY: main file. main_function takes workmode (generate a formula or load a hardcoded one) and desired formula length
+#   as arguments and returns a number code depending on whether the formula is a tautology or not and whether it's
+#   been generated before
 
 # setup for generating a formula: amount of connectives/operators, atoms, and agents
 # shorter formulas have fewer variables
@@ -49,12 +52,9 @@ def make_model(formula_length, WORKMODE):
 #           1 - formula is new and was evaluated
 #           2 - formula is new and was a tautology
 #           -1 - formula was generated improperly and can't be evaluated
-def main_function(WORKMODE, formula_length=randint(3, 200)):
-    # formula_length = randint(3, 15)
-    # FIXME: put call in this file, enable randomness back after data gathering
+def main_function(WORKMODE, formula_length=randint(3, 150)):
     if WORKMODE == "load":
         formula_length = 7      # CHANGES DEPENDING ON PRESET
-    # FIXME: correct max length back to (150?) after testing
     main_world = make_model(formula_length, WORKMODE)
     proof_world = main_world.copy_model()
 
@@ -123,6 +123,3 @@ def main_function(WORKMODE, formula_length=randint(3, 200)):
 
 WORKMODE = "generate"
 # WORKMODE = "load"
-
-# FIXME: put randomness back to 150 max later
-# main_function("generate", randint(3,15))

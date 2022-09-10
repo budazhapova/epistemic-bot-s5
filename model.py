@@ -1,6 +1,8 @@
-# class Model defines possible model as explored by tableau solver
 from copy import deepcopy
 from anytree import Node, PreOrderIter
+
+# SUMMARY: class Model defines possible model as explored by tableau solver.
+#   contains the actual formula and all the information contained in a Kripke model
 
 class Model:
     # number of atoms (letters) and agents (digits) is passed when instance is created
@@ -22,7 +24,6 @@ class Model:
         # tracks if the same M/neg-K operator is resolved multiple times. If the same node ID is
         # triggered 3 times, branch is declared open and the formula - a non-tautology
 
-    # TODO: remove if proves unneeded
     # start with letter 'a' and add new atoms alphabetically as needed
     def add_atom(self):
         self.atoms.append(chr(ord('a') + len(self.atoms)))
@@ -44,7 +45,6 @@ class Model:
             return False
 
 
-    # TODO: remove if not needed or adjust
     # add a new agent with an empty list of accessibility relations
     def initialize_agent(self):
         self.agents.append(list(None))
@@ -135,18 +135,6 @@ class Model:
         repetitions = self.repeated_nodes.setdefault(node_id, 0) + 1
         self.repeated_nodes[node_id] = repetitions
         return self.repeated_nodes.get(node_id)
-        # if not self.repeated_nodes:
-        #     self.repeated_nodes[node_id] = 1
-        #     return False
-        # else:
-        #     if node_id in self.repeated_nodes:
-        #         self.repeated_nodes[node_id] = self.repeated_nodes[node_id] + 1
-        #         print(f"node {node_id} invoked {self.repeated_nodes[node_id]} times")
-        #         return self.repeated_nodes.get(node_id)
-        #     # if node not in the dictionary, record it
-        #     else:
-        #         self.repeated_nodes[node_id] = 1
-        #         return 1
 
     # copies a branch of formula node by node and return the resulting list
     def replicate_branch(self, root):
@@ -162,10 +150,6 @@ class Model:
                     if replica.id == parent_id:
                         newnode.parent = replica
             new_branch.append(newnode)
-            # FIXME: is likely unnecessary; remove later?
-            # if root-node has parents, detach it
-            # if node == root and not root.is_root:
-            #     new_branch[-1].parent = None
         if len(new_branch) < 1:
             print("copying branch failed!")
         else:
@@ -180,8 +164,6 @@ class Model:
             print(f"traversing node {current_node.name}")
             for child in current_node.children:
                 self.wipe_branch(tree, child)
-        # wipe current nodes from leaves up
-        # current_node.parent = None
         print(f"wiping node {current_node.name}")
         if current_node in tree:
             print(f"{current_node.name} wiped from list")
@@ -215,8 +197,6 @@ class Model:
         for s in roots_sidebar:
             branch_copy = self.replicate_branch(s)
             new_model.sidebar.extend(branch_copy)
-        # new_model.sidebar = deepcopy(self.sidebar)
-        # new_model.states = deepcopy(self.states)
         if not new_model:
             print("model object copying failed!")
         else:

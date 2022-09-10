@@ -1,6 +1,8 @@
 from main import main_function
 from recordManager import retrieve_formulas, json_to_tree
 
+# SUMMARY: running this code file generates and solves a batch of i formulas of a given formula length
+
 formula_length = 15
 duds = 0
 new_formulas = 0

@@ -1,5 +1,7 @@
 from anytree import Node, PreOrderIter
 
+# SUMMARY: this file contains methods for recursively translating a tree-format formula into a human-readable string
+
 symbol_codes = {
     "NEG" : '\xac',
     "AND" : '\u2227',
@@ -7,10 +9,11 @@ symbol_codes = {
     "IMP" : '\u2192',
     "BI_IMP" : '\u2194',
     1 : '\u2081',
-    2 : '\u2082'
+    2 : '\u2082',
+    3 : '\u2083'
 }
 
-# recursively traverses the 
+# recursively traverses the tree
 def convert(root_node):
     stroutput = []
     operator = None
@@ -35,8 +38,6 @@ def convert(root_node):
     elif root_node.name in ["NEG_AND", "NEG_OR", "NEG_IMP", "NEG_BI_IMP"]:
         stroutput.append(0)
         stroutput.append('(')
-    # elif root_node.name == "NEG":
-    #     stroutput.append('\xac')
 
     if "AND" in root_node.name:
         operator = ' && '
@@ -53,7 +54,7 @@ def convert(root_node):
         elif "M" in root_node.name:
             operator = "M"
         # replaces string agent identifiers with appropriate subscript unicode characters
-        # maximum of 2 agents
+        # maximum of 3 agents
         # FIXME: change if more agents used
         if left_part == 1:
             left_part = '\u2081'
@@ -65,8 +66,6 @@ def convert(root_node):
         left_part = convert(root_node.children[0])
     if operator:
         right_part = convert(root_node.children[1])
-    
-    
     
     # now add parts together
     # left-operator-right order unless operator is epistemic
@@ -85,9 +84,9 @@ def convert(root_node):
 
     return stroutput
 
+# takes a root and returns a string formula
 def translate_formula(root_node):
     final_formula = convert(root_node)
     final_formula = ''.join(final_formula)
-    # TODO: remove some spaces between brackets, epistemic operators, negations in front of atom
     
     return final_formula

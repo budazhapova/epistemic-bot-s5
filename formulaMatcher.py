@@ -1,7 +1,10 @@
-from anytree import Node, LevelOrderIter
+from anytree import Node
 from model import Model
 from presets import *
 from stringConverter import *
+
+# SUMMARY: this file compares tree formulas to one another node by node to determine if they are the same.
+#   handling of symmetric binary connectives included.
 
 # AND, OR, and BI_IMP are symmetric operators and require different approach
 
@@ -59,12 +62,3 @@ def compare_formulas(old_f, new_f):
                 return True
     else:
         return False
-
-main_world = Model(1, 1)
-main_world.formula_tree = load_preset(8)
-main_world.node_total = len(main_world.formula_tree)
-roots = main_world.find_roots(main_world.formula_tree)
-top_node = roots[0]
-
-match = compare_formulas(top_node, top_node)
-print("Match: ", match)
