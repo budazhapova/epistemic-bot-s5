@@ -3,6 +3,8 @@ from model import Model
 from presets import *
 from stringConverter import *
 
+# SUMMARY: this file contains a method for recursively comparing formulas and find duplicates
+
 # AND, OR, and BI_IMP are symmetric operators and require different approach
 
 # compares formulas to one another

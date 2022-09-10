@@ -1,5 +1,7 @@
 from anytree import Node
 
+# SUMMARY: hard-coded formulas for the bot testing
+
 # preset formulas:
 # 1 -- (not-a or not-b)
 

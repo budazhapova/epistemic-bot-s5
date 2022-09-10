@@ -1,6 +1,8 @@
 from main import main_function
 from recordManager import retrieve_formulas, json_to_tree
 
+# SUMMARY: this code is for doing batch runs and collecting data from them
+
 formula_length = 15
 duds = 0
 new_formulas = 0

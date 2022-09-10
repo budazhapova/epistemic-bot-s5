@@ -6,6 +6,8 @@ from anytree import Node, RenderTree
 from copy import deepcopy
 import sys
 
+# SUMMARY: this file contains code of the tableau solver module. tableau_solver function takes a Model-class object (world)
+#   and solves the negation of the formula contained there. returns a boolean for whether the formula is a tautology or not
 
 # checks if there are any previous box-like operators for the old state
 # and if so, triggers resolution of them for the new state
@@ -20,7 +22,7 @@ def trigger_sidebar(agent, old_state, new_state, world):
         #   solve it again for new state
         if n.state in rel_set and n.children[0].name == agent:
             repeat_solve_K_or_neg_M(n, new_state, world)
-# FIXME: check if set of relations works!!
+
 
 # PRIORITY TIER 0
 # resolve an atom at the end of a branch
@@ -60,11 +62,6 @@ def solve_multi_neg(node, world):
 
 # resolve double negation
 def solve_double_neg(oper, world):
-    # if formula branches after double negation node, abort
-    # if len(oper.children) > 1:
-    #     print("more than one child of DOUBLE_NEG node!")
-    #     # render_branch(oper)
-    #     sys.exit("DOUBLE NEG ERROR")
     world.inherit_state(oper)
     world.detach_parent(oper)
     world.formula_tree.remove(oper)
@@ -75,19 +72,9 @@ def solve_neg(oper, world):
     if oper.height > 1:
         solve_multi_neg(oper, world)
         return
-        # FIXME: remove if not needed
-        # if next node is double negation, remove it
-        # for child in oper.children:
-        #     if child.name == "DOUBLE_NEG":
-        #         world.remove_branch_node(oper, child, world.formula_tree)
-        # in case there is a negation pileup
     world.inherit_state(oper)
     # check atom's truth valuation in the model
     atom = oper.children[0]
-    # if atom not in world.formula_tree:
-        # print(f"ERORR: atom {atom.name} not found in world.formula_tree\n full list:")
-        # for node in world.formula_tree:
-        #     print(node.name)
     result = world.access_atom(atom.name, False, atom.state)
     # if contradiction encountered, wipe the branch
     if result == False:
@@ -101,21 +88,12 @@ def solve_neg(oper, world):
 # PRIORITY TIER 2
 # resolve AND operators
 def solve_and(oper, world):
-    # if AND operator is misapplied
-    # if len(oper.children) != 2:
-    #     print("binary operator with wrong number of children!")
-    #     render_branch(oper)
-    #     sys.exit("AND ERROR")
     world.inherit_state(oper)
     world.detach_parent(oper)
     world.formula_tree.remove(oper)
 
 # resolve NOT-OR operator
 def solve_neg_or(oper, world):
-    # if len(oper.children) != 2:
-    #     print("binary operator with wrong number of children!")
-    #     render_branch(oper)
-    #     sys.exit("NEG-OR ERROR")
     world.inherit_state(oper)
     # apply negation to both child-nodes, with neg-node inserted between oper and children
     for child in oper.children:
@@ -126,10 +104,6 @@ def solve_neg_or(oper, world):
 
 # resolve NOT-IMPLIES operator
 def solve_neg_imp(oper, world):
-    # if len(oper.children) != 2:
-    #     print("binary operator with wrong number of children!")
-    #     render_branch(oper)
-    #     sys.exit("NEG-IMP ERROR")
     # 'a does not imply b' means 'a and not-b'
     right_child = oper.children[1]
     world.node_total += 1
@@ -139,7 +113,6 @@ def solve_neg_imp(oper, world):
     world.formula_tree.remove(oper)
 
 # PRIORITY TIER 3
-# TODO: rewrite to deal with taking formula from sidebar and copying it to main tree
 # deals with box-like operators (K or not-M)
 def resolve_epist_box(oper, new_state_id, world, negation=False):
     # if not-M is being resolved, push negation on top of formula
@@ -186,7 +159,6 @@ def solve_initial_K_neg_M(oper, world):
     # in any case, resolve epistemic operator for the home state (accesses itself)
     resolve_epist_box(oper, home_state, world, negation)
 
-# TODO: can these two be folded into one??
 # works with previously resolved box-like epist operators from the sidebar
 def repeat_solve_K_or_neg_M(oper, new_state_id, world):
     negation = False
@@ -241,11 +213,6 @@ def solve_branching(oper, world):
     # copy child branches, then remove them from main
     left_branch = []
     right_branch = []
-    # detach children branches from the top operator
-    # left_topnode = oper.children[0]
-    # right_topnode = oper.chldren[1]
-    # world.detach_parent(oper)
-    # TODO: which branch copying method to use??
     left_branch = world.replicate_branch(oper.children[0])
     right_branch = world.replicate_branch(oper.children[1])
     world.wipe_branch(world.formula_tree, oper)
@@ -265,7 +232,6 @@ def solve_branching(oper, world):
         make_neg(left_branch, left_branch[0], world.node_total+1)
         world.node_total += 1
     # BI_IMP => A + B, not-A + not-B
-    # FIXME: check if replicate_branch works properly??
     elif rule == "BI_IMP":
         temp_copy = world.replicate_branch(left_branch[0])
         # temp_copy = deepcopy(left_branch)
@@ -279,34 +245,21 @@ def solve_branching(oper, world):
     elif rule == "NEG_BI_IMP":
         temp_right = world.replicate_branch(right_branch[0])
         temp_left = world.replicate_branch(left_branch[0])
-        # temp_right = deepcopy(right_branch)
-        # temp_left = deepcopy(left_branch)
         make_neg(temp_left, temp_left[0], world.node_total+1)
         make_neg(temp_right, temp_right[0], world.node_total+2)
         world.node_total += 2
         left_branch.extend(temp_right)
         right_branch.extend(temp_left)
     # reinsert left branch into world-copy, right branch into original model object
-    # old_formula_len = len(world_prime.formula_tree)
     world_prime.formula_tree.extend(left_branch)
-    # new_length = len(world_prime.formula_tree)
-    # print(f"model copy extended from {old_formula_len} nodes to {new_length} nodes")
-    # print("model copy contains after attaching:")
-    # roots_prime = world_prime.find_roots(world_prime.formula_tree)
-    # printout for world_prime's formula tree
-    # for r in roots_prime:
-    #     render_branch(r)
     world.formula_tree.extend(right_branch)
     # check for roots in old model
     top_nodes = world.find_roots(world.formula_tree)
-    # if len(top_nodes) < 1:
-    #     print(f"NO ROOTS FOUND while resolving {rule}")
     # try to solve left branch in world_prime first
     while world_prime.formula_tree:
         branch_status = solver_loop(world_prime)
         if branch_status == False:
             return False
-    # FIXME: check whether wrapper list for models is necessary?
 
 
 # sort roots by priority
@@ -373,14 +326,10 @@ def solver_loop(world):
         return False
 
 
-# TODO: operation for erasing branch with return -99
-# TODO: duplicate for branching formulas
 
-
-# list formula_tree stores the formula in tree-node form
+# list formula_tree stores the formula in tree-node form.
 # sidebar is where we put formulas that might be expanded again later
-# if a new accessibility relation is discovered
-
+#    if a new accessibility relation is discovered
 def tableau_solver(main_world):
     # records whether the formula is a tautology
     t_status = None
@@ -407,9 +356,3 @@ def tableau_solver(main_world):
     if not t_status == False:
         t_status = True
         return t_status
-
-
-
-
-# WORKMODE = "generate"
-# WORKMODE = "load"

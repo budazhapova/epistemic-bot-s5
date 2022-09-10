@@ -3,7 +3,7 @@ from anytree import Node, RenderTree, ContStyle
 from random import randint, choice, sample
 from stringConverter import translate_formula
 
-#TODO: load requirements from file?
+# SUMMARY: generate_formula takes a Model-class object and target length of a formula and constructs an epistemic formula
 
 # all possible operators and connective in descending priority order of resolving
 connectives = {
@@ -29,7 +29,6 @@ num_agents = 2
 
 
 
-# TODO: should atoms/agents have priority tier? check with resolving negations in tableau
 # makes a node with a propositional atom
 def write_atom(world, atom):
     world.formula_tree.append(Node(atom, type="atom", state=None, priority=0, id=world.node_total+1))
@@ -37,7 +36,6 @@ def write_atom(world, atom):
     return world.formula_tree[-1]
 
 # makes a node with an agent
-# TODO: connect atom and agent with model? do we actually need it for the generator?
 def write_agent(world, agent):
     world.formula_tree.append(Node(agent, type="agent", state=None, priority=0, id=world.node_total+1))
     world.node_total += 1
@@ -129,7 +127,6 @@ def render_branch(element):
         print("%s%s[%s]/%s (%s)" % (pre, node.name, node.id, node.state, node.priority))
 
 
-# TODO: implicit/distributed knowledge operator I?
 
 # generates a formula of 'countdown' length.
 # every atom and operator (except for agents) adds length of 1.
@@ -168,17 +165,6 @@ def generate_formula(world, countdown):
             # FIXME: removed the limited operator selection, test working
             # selected = rnd_op_choice(choice([1,2,5]))
             selected = rnd_op_choice(randint(1,5))
-        # ensure we don't end up with too many branches to draw to a single root.
-        # if selected is 'double neg' or 'not-smth', choose from
-        # while countdown <= len(current_roots) and "_" in selected:
-        #     if selected == "BI_IMP": break
-        #     # if branches need uniting
-        #     if len(current_roots) > 1:
-        #         # only non-negated binary connectives permitted
-        #         selected = choice(["AND", "OR", "IMP", "BI_IMP"])
-        #     # if no unifying necessary
-        #     else:
-        #         selected = rnd_op_choice(randint(1,5))
         build_rnd_subformula(world, selected)
         # if chosen operator contains negation, adjust count
         if "_" in selected and selected != "BI_IMP":
@@ -186,8 +172,6 @@ def generate_formula(world, countdown):
         else:
             countdown -= 1
     all_branches = world.find_roots(world.formula_tree)
-    # if len(all_branches) > 1:
-        # print("SPLIT TREE!")
     # print formula tree for checking
     # for elem in all_branches:
     #     render_branch(elem)
@@ -195,6 +179,3 @@ def generate_formula(world, countdown):
 
     # line_format = translate_formula(all_branches[0])[0]
     # print(line_format)
-    # return formula_tree
-
-# generate_formula(6)

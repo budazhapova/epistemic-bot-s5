@@ -1,5 +1,7 @@
 import tweepy
 
+# SUMMARY: this file contains code and authentication details for the Twitter account @epistemic_botS5
+
 consumer_key = 'LlQY1SDjuUEZnfIZX3xK1KvZW'
 consumer_secret = 'fqVJYoXJLX6JQZzaBPo7tbhLrz3BXQVS5Pb9ZfvzhiTGzjfq82'
 access_token = '1564008155297845254-aC5IVAt7N7LIseREzz3ow9zox6eBjl'

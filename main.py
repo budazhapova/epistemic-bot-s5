@@ -7,7 +7,10 @@ from formulaMatcher import compare_formulas
 from random import randint
 import time
 import tracemalloc
-import sys      # TODO: remove when not needed
+
+# SUMMARY: main_function takes as argument the mode (generate or load a formula) and desired formula length.
+#   then it generates, compares to already recorded formulas, and solves a formula. if it turns out to be a tautology,
+#   it also records it into a separate tautologies file for posting to Twitter
 
 # setup for generating a formula: amount of connectives/operators, atoms, and agents
 # shorter formulas have fewer variables

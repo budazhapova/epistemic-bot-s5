@@ -5,6 +5,9 @@ from twitterPublisher import publish_tweet
 from apscheduler.schedulers.blocking import BlockingScheduler
 from random import seed, randint
 
+# SUMMARY: this is the file that is always running on the host device. generates or retrieves a tautology to publish on Twitter
+#   every 4 hours and generates tautologies in advance so as to keep a precise schedule
+
 def publish_to_twitter():
     t_list = retrieve_formulas("tautologies")
     seed()
@@ -34,5 +37,3 @@ def publish_to_twitter():
 scheduler = BlockingScheduler()
 scheduler.add_job(publish_to_twitter, 'interval', hours=4)
 scheduler.start()
-
-# TODO: TEST WITH SHORTER INTERVAL

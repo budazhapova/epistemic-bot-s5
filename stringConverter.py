@@ -1,5 +1,7 @@
 from anytree import Node, PreOrderIter
 
+# SUMMARY: this file contains code for recursively translating a tree-format formula into a string with the method translate_formula
+
 symbol_codes = {
     "NEG" : '\xac',
     "AND" : '\u2227',
@@ -7,7 +9,8 @@ symbol_codes = {
     "IMP" : '\u2192',
     "BI_IMP" : '\u2194',
     1 : '\u2081',
-    2 : '\u2082'
+    2 : '\u2082',
+    3 : '\u2083'
 }
 
 double_symbols = " \u2227 \u2228 \u2192 \u27f7 \u2081 \u2082 \u2083"
@@ -18,9 +21,6 @@ def convert(root_node):
     operator = None
     if root_node.is_leaf:
         return list(str(root_node.name))
-
-    # alternative nesting
-    # if children nodes have children themselves
 
     if "NEG" in root_node.name:
         # stroutput.append(0)
@@ -37,8 +37,6 @@ def convert(root_node):
     elif root_node.name in ["NEG_AND", "NEG_OR", "NEG_IMP", "NEG_BI_IMP"]:
         stroutput.append(0)
         stroutput.append('(')
-    # elif root_node.name == "NEG":
-    #     stroutput.append('\xac')
 
     if "AND" in root_node.name:
         operator = ' \u2227 '
@@ -55,20 +53,18 @@ def convert(root_node):
         elif "M" in root_node.name:
             operator = "M"
         # replaces string agent identifiers with appropriate subscript unicode characters
-        # maximum of 2 agents
+        # maximum of 3 agents
         # FIXME: change if more agents used
         if left_part == 1:
             left_part = '\u2081'
         elif left_part == 2:
             left_part = '\u2082'
         elif left_part == 3:
-            left_part = '\u2083'
+            left_part = 'D'
     if not operator == "K" and not operator == "M":
         left_part = convert(root_node.children[0])
     if operator:
         right_part = convert(root_node.children[1])
-    
-    
     
     # now add parts together
     # left-operator-right order unless operator is epistemic
